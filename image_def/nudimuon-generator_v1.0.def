@@ -1,0 +1,270 @@
+BootStrap: docker
+From: ubuntu:20.04
+
+%labels
+	Author Sourav Sarkar
+	Email ssarkar1@ualberta.ca
+	Version v1.0
+%help
+	This container provides all the dependencies to run
+	different steps of the dimuon event generato software.
+	In addition, the software packages allow the
+	developers to create flexible event generators and
+	simulation steps either for replacing exisiting
+	neutrino dimuon generation mechanism or for entirely
+	new physics process simulation.
+
+%post
+	apt update
+	apt upgrade -y
+	DEBIAN_FRONTEND=noninteractive apt install --no-install-recommends -y \
+                build-essential \
+                ca-certificates \
+		cmake \
+		curl \
+		fftw3-dev \
+		gcc \
+		gfortran \
+		git \
+                ipython3 \
+		jq \
+                jupyter-notebook \
+                jupyter-nbconvert \
+		less \
+		libarchive-dev \
+                libboost-date-time-dev \
+		libboost-dev \
+                libboost-all-dev \
+                libboost-filesystem-dev \
+                libboost-iostreams-dev \
+                libboost-numpy-dev \
+                libboost-program-options-dev \
+                libboost-python-dev \
+                libboost-regex-dev \
+                libboost-serialization-dev \
+                libboost-system-dev \
+                libboost-thread-dev \
+                libbz2-dev \
+		libcdk5-dev \
+		libncurses-dev \
+                libcfitsio-dev \
+                libgsl-dev \
+                libgsl0-dev \
+                libhdf5-dev \
+		liblapack-dev \
+		libopenblas-dev \
+                libqt5opengl5-dev \
+		libsprng2-dev \
+		libstarlink-pal-dev \
+		libsuitesparse-dev \
+		libzstd-dev \
+                lmodern \
+                locales \
+                man-db \
+                pkg-config \
+                python3-h5py \
+                python3-healpy \
+                python3-matplotlib \
+                python3-notebook \
+                python3-numpy \
+                python3-pandas \
+                python3-pip \
+                python3-scipy \
+		python3-sphinx \
+		python3-venv \
+		python3-zmq \
+                qt5-qmake \
+                qtbase5-dev \
+                qtbase5-dev-tools \
+                qtchooser \
+                qpdfview \
+                rsync \
+                sshfs \
+                subversion \
+		vim \
+		wget
+
+	locale-gen
+
+	#.....PyPI packages
+	pip install pkgconfig
+
+	#.....install photospline
+	cd /opt/
+	git clone https://github.com/icecube/photospline.git photospline
+	cd photospline
+	cmake . -DCMAKE_INSTALL_PREFIX=/usr/local
+	make install -j3
+
+	#.....install LeptonInjector
+	cd /opt/
+	mkdir LeptonInjector
+	cd LeptonInjector
+	git clone https://github.com/icecube/LeptonInjector.git src
+	mkdir build
+	cd build
+	cmake -DCMAKE_INSTALL_PREFIX=/usr/local ../src
+	make -j3
+	make install
+
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+	export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python3/dist-packages
+
+	#.....install SQuIDS
+	cd /opt/
+	git clone https://github.com/jsalvado/SQuIDS.git SQuIDS
+	cd SQuIDS
+	./configure
+	make -j3
+	make install
+
+	#.....install nuSQuIDS
+	export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
+	cd /opt/
+	git clone https://github.com/arguelles/nuSQuIDS nuSQuIDS
+	cd nuSQuIDS
+	./configure --with-python-bindings
+	make -j3
+	make python
+	make python-install
+	make install
+
+	#.....install nuflux
+	pip install git+https://github.com/icecube/nuflux
+
+	#.....install LeptonWeighter
+	cd /opt/
+	git clone https://github.com/icecube/LeptonWeighter.git LeptonWeighter
+	cd LeptonWeighter
+	python3 ./resources/make_pc.py h5py hdf5
+	./configure
+	sed -i "s/HDF5_CFLAGS=.*/HDF5_CFLAGS=-I\/usr\/include\/hdf5\/serial/g" Makefile
+	sed -i "s/HDF5_LDFLAGS=.*/HDF5_LDFLAGS=-L\/usr\/lib\/x86_64-linux-gnu\/hdf5\/serial/g" Makefile
+	make -j3
+	make python
+	make python-install
+	make install
+
+	#.....install HepMC2.007
+	cd /opt/
+	mkdir HepMC2
+	cd HepMC2
+	git clone https://gitlab.cern.ch/hepmc/HepMC.git source
+	mkdir build
+	cd build
+	cmake -Dmomentum=GEV -Dlength=CM ../source
+	make -j3
+	make install
+
+	#.....install LHAPDF6.2.1
+	cd /opt/
+	mkdir LHAPDF6
+	cd LHAPDF6
+	wget https://lhapdf.hepforge.org/downloads/?f=LHAPDF-6.2.1.tar.gz -O LHAPDF-6.2.1.tar.gz
+	tar xvzf LHAPDF-6.2.1.tar.gz
+	rm LHAPDF-6.2.1.tar.gz
+	cd LHAPDF-6.2.1
+	./configure --disable-python
+	make -j3
+	make install
+
+	#.....install ZLIB1.2.8
+	cd /opt/
+	mkdir ZLIB
+	wget https://zlib.net/fossils/zlib-1.2.8.tar.gz
+	tar xvzf zlib-1.2.8.tar.gz
+	rm zlib-1.2.8.tar.gz
+	cd zlib-1.2.8
+	./configure --prefix=/usr/local
+	make -j3
+	make install
+
+	#.....install Pythia8.235
+	cd /opt/
+	mkdir Pythia8
+	cd Pythia8
+	wget https://pythia.org/download/pythia82/pythia8235.tgz -O pythia8235.tgz
+	tar xvzf pythia8235.tgz
+	rm pythia8235.tgz
+	cd pythia8235
+	./configure --prefix=/usr/local \
+	--with-hepmc2=/usr/local --with-hepmc2-include=/usr/local/include \
+	--with-lhapdf6=/usr/local --with-lhapdf6-include=/usr/local/include \
+	--with-gzip=/usr/local
+	make -j3
+	make install
+
+	#.....install DIRE2.002
+	cd /opt/
+	mkdir DIRE
+	cd DIRE
+	wget https://dire.gitlab.io/Downloads/DIRE-2.002.tar.gz
+	tar xvzf DIRE-2.002.tar.gz
+	rm DIRE-2.002.tar.gz
+	cd DIRE-2.002
+	./configure --prefix=/usr/local --with-pythia8=/usr/local
+	make -j3
+	make install
+
+	#.....install CalcHEP
+	cd /opt/
+	mkdir CalcHEP
+	mkdir -p /home/generators
+	cd CalcHEP
+	wget https://theory.sinp.msu.ru/~pukhov/CALCHEP/calchep_3.7.1.tgz
+	tar xvzf calchep_3.7.1.tgz
+	rm calchep_3.7.1.tgz
+	cd calchep_3.7.1
+	make
+	./mkWORKdir /home/generators/CalcHEP
+
+	#.....install MadGraph
+	cd /opt/
+	mkdir MadGraph
+	cd MadGraph
+	wget https://launchpad.net/mg5amcnlo/lts/2.8.x/+download/MG5_aMC_v2.8.3.2.tar.gz
+	tar xvzf MG5_aMC_v2.8.3.2.tar.gz
+
+	#.....install daemonflux
+	pip install numpy --upgrade
+	pip install daemonflux
+
+	#.....update python packages
+	pip install pandas --upgrade
+	pip install matplotlib --upgrade
+	pip install h5py --upgrade
+
+	#.....install chromo
+	git config --global url.https://github.com/.insteadOf git@github.com:
+	cd /opt/
+	git clone --recursive https://github.com/impy-project/chromo chromo
+	cd chromo
+	python3 -m venv /opt/venv_chromo
+	. /opt/venv_chromo/bin/activate
+	pip install --prefer-binary -v -e .
+	deactivate
+
+	#.....install icetray-public
+	cd /opt/
+	mkdir icetray-public
+	cd icetray-public
+	git clone https://github.com/icecube/icetray-public.git src
+	cd src
+	rm -rf steamshovel
+	cd ..
+	mkdir build
+	cd build
+	cmake ../src/
+	make -j3
+
+		
+%environment
+        export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+        export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python3/dist-packages
+	export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:$PKG_CONFIG_PATH"
+	alias python=python3
+
+%runscript
+	echo "Library Paths $LD_LIBRARY_PATH"
+	echo "Python Path $PYTHONPATH"
+	echo "Package path $PKG_CONFIG_PATH"
