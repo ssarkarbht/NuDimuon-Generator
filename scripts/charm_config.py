@@ -11,8 +11,6 @@ import numpy as np
 import h5py as h5
 from numpy.random import default_rng
 from argparse import ArgumentParser
-import sys
-sys.path.insert(1,"/home/sourav/github/dimuon_generator/config_generator/")
 import generator as gn
 import json
 
