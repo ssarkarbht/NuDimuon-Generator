@@ -29,7 +29,7 @@ mpl.rc('figure',dpi=350)
 
 #################################---Segment for building EPA cross-section function----#########
 #Loading the CM EPA cross-section data
-epa_data=np.loadtxt(data_dir+"/data/trident_cross_section/EPA_CM_SM_XS_DATA.txt")
+epa_data=np.loadtxt(repo_dir+"/data/trident_cross_section/EPA_CM_SM_XS_DATA.txt")
 cmen=epa_data[:,0]
 cmxs=epa_data[:,1]
 
