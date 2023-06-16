@@ -20,7 +20,7 @@ import scipy.integrate as it
 from glob import glob
 import os
 
-data_dir = os.environ["DIMUON_DATA"]
+repo_dir = os.environ["DIMUON_REPO"]
 
 #Plotting is for debugging and testing purposes
 import matplotlib.pyplot as plt
@@ -29,7 +29,7 @@ mpl.rc('figure',dpi=350)
 
 #################################---Segment for building EPA cross-section function----#########
 #Loading the CM EPA cross-section data
-epa_data=np.loadtxt(data_dir+"/trident_cross_section/EPA_CM_SM_XS_DATA.txt")
+epa_data=np.loadtxt(data_dir+"/data/trident_cross_section/EPA_CM_SM_XS_DATA.txt")
 cmen=epa_data[:,0]
 cmxs=epa_data[:,1]
 
