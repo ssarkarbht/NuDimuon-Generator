@@ -1,0 +1,10 @@
+{
+"avogadro" : {
+	"value" : 6.02214076e-4,
+	"unit" : "cm^2/mb/mol"
+	},
+"light_speed" : {
+	"value" : 2.99792458e10,
+	"unit" : "cm/s"
+	}
+}
