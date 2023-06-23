@@ -72,6 +72,13 @@ def corsika_Bp(energy):
     return xs
 
 def dpmjet_Ktarget(energy, nucleus=2212):
+    '''Computes the kaon cross section for a given target
+    using DPMJETIII hadronic interaction model.
+    Default target is proton.
+    nucleus can be integer (for hadrons with pdg code),
+        tuple (for individual nucleus with mass and atomic num),
+        list of tuples (for composite target like air, water, ice)
+    '''
     global generator
     if isinstance(energy, np.ndarray):
         xsarr = np.zeros_like(energy)
@@ -81,7 +88,7 @@ def dpmjet_Ktarget(energy, nucleus=2212):
             xs = generator.cross_section(newkin)
             if isinstance(nucleus, int):
                 xsarr[i]  = xs.total
-            elif isinstance(nucleus, tuple):
+            elif isinstance(nucleus, (tuple, ch.util.CompositeTarget)):
                 xsarr[i] = xs.inelastic
         return xsarr
     else:
@@ -90,7 +97,7 @@ def dpmjet_Ktarget(energy, nucleus=2212):
         xs = generator.cross_section(ev_kin)
         if isinstance(nucleus, int):
             return xs.total
-        elif isinstance(nucleus, tuple):
+        elif isinstance(nucleus, (tuple, ch.util.CompositeTarget)):
             return xs.inelastic
 
 def sigma_Mp(energy):
@@ -147,6 +154,9 @@ def sigma_Bp(energy):
     return xsarr
 
 def glauber_factor(energy, medium):
+    ''' Computes the Glauber interpolation scheme factor
+    for heavier target cross sections compared to proton
+    '''
     assert isinstance(energy, np.ndarray), "The function takes numpy array input format"
     if medium==2212 or medium==(1,1):
         print ("No Glauber interpolation needed for proton/hydrogen.")
@@ -175,3 +185,57 @@ def charm_hadron_sigma(energy, charm_type, nucleus=2212):
     _,beta = glauber_factor(energy, nucleus)
 
     return beta*barexs
+
+if __name__ == "__main__":
+    import os
+    import json
+    # get the repo directory path
+    repo_dir = os.environ["DIMUON_REPO"]
+    dataloc = repo_dir + "/data/constants_particles_materials/"
+
+    # get the materials and constants properties
+    mfile = dataloc+"medium_properties.json"
+    cfile = dataloc+"constants.json"
+
+    with open(mfile, "r") as f:
+        materials = json.load(f)
+
+    with open(cfile,"r") as f:
+        constants = json.load(f)
+
+    # list of media and charm hadron for cross sections
+    matlist = ["ice", "water", "argon_liquid",
+            "iron", "lead", "tungsten"]
+    hadlist = ["Meson", "Baryon"]
+
+    # number of energy points and energy range
+    npoints = 1000
+    emin = 10.0 #GeV
+    emax = 1.0e8 #GeV
+    #get the energy array
+    energy = np.logspace(np.log10(emin), np.log10(emax), npoints)
+
+    # data output directory
+    outdir = repo_dir + "/data/charm_muon_data/charm_hadron_cross_section/"
+
+    # compute cross sections for all the target medium in the list
+    for med in matlist:
+        print (f"Computing cross section for {med}.")
+        outfname = "charm_"+med+"_sigma.dat"
+        xs_data = {}
+        if med in ["ice", "water"]:#composite target medium
+            medval = ch.util.CompositeTarget([("p",2), ("O16",1)], "H2_O")
+        else:#hadrons or individual nucleus target
+            medval = (materials[med]["mass_num"], 
+                    materials[med]["atom_num"])
+        for had in hadlist:
+            xs_run = charm_hadron_sigma(energy, had, medval)
+            xs_data[had] = xs_run
+        
+        #prepare the data points to store
+        cheader = f"{npoints} rows, 3 columns : energy (GeV), meson, baryon sigma (mb)"
+        data = np.hstack((energy.reshape(-1,1),
+            xs_data['Meson'].reshape(-1,1),
+            xs_data['Baryon'].reshape(-1,1)))
+        print (f"Saving Cross Section data for {med}.")
+        np.savetxt(outdir+outfname, data, header=cheader)

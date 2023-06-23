@@ -1,0 +1,86 @@
+{
+"D+" : {
+	"pdgid" : 411,
+	"mass" : 1.86966,
+	"lifetime" : 1040e-15,
+	"identifier" : 0
+	},
+"D-" : {
+	"pdgid" : -411,
+	"mass" : 1.86966,
+	"lifetime" : 1040e-15,
+	"identifier" : 1
+	},
+"D0" : {
+	"pdgid" : 421, 
+	"mass" : 1.86484,
+	"lifetime" : 410.1e-15,
+	"identifier" : 2
+	},
+"D0Bar" : {
+	"pdgid" : -421,
+	"mass" : 1.86484,
+	"lifetime" : 410.1e-15,
+	"identifier" : 3
+	},
+"DS+" : {
+	"pdgid" : 431,
+	"mass" : 1.96835,
+	"lifetime" : 504e-15,
+	"identifier" : 4
+	},
+"DS-" : {
+	"pdgid" : -431,
+	"mass" : 1.96835, 
+	"lifetime" : 504e-15,
+	"identifier" : 5
+	},
+"XiC+" : {
+	"pdgid" : 4232, 
+	"mass" : 2.46771,
+	"lifetime" : 456e-15,
+	"identifier" : 6
+	},
+"XiC-" : {
+	"pdgid" : -4232,
+	"mass" : 2.46771,
+	"lifetime" : 456e-15,
+	"identifier" : 7
+	},
+"LC+" : {
+	"pdgid" : 4122,
+	"mass" : 2.28646,
+	"lifetime" : 202.4e-15,
+	"identifier" : 8
+	},
+"LC-" : {
+	"pdgid" : -4122,
+	"mass" : 2.28646,
+	"lifetime" : 202.4e-15,
+	"identifier" : 8
+	},
+"XiC0" : {
+	"pdgid" : 4132,
+	"mass" : 2.47044,
+	"lifetime" : 153e-15,
+	"identifier" : 9
+	},
+"XiC0Bar" : {
+	"pdgid" : -4132,
+	"mass" : 2.47044,
+	"lifetime" : 153e-15,
+	"identifier" : 9
+	},
+"OmC0" : {
+	"pdgid" : 4332,
+	"mass" : 2.6952,
+	"lifetime" : 268e-15,
+	"identifier" : 10
+	},
+"OmC0Bar" : {
+	"pdgid" : -4332,
+	"mass" : 2.6952,
+	"lifetime" : 268e-15,
+	"identifier" : 10
+	}
+}
