@@ -18,14 +18,7 @@ from numpy.random import default_rng
 import sys, os
 
 repo_dir = os.environ["DIMUON_REPO"]
-
-
-sys.path.insert(0, '/data2/icecube/ssarkar/impy')
-from impy.definitions import *
-from impy.constants import *
-from impy.kinematics import EventKinematics, CompositeTarget
-from impy import impy_config, pdata
-
+data_dir = repo_dir + "/data/"
 
 #Useful functions to be used in the main class
 def convert_linlog(x, to='log'):
@@ -108,92 +101,6 @@ def br_intepolation(fname):
 
     func = ip.interp1d(logx, y, kind='slinear')
     return func
-
-#hadron-hadron interaction cross-section for charm hadrons
-def sigma_meson(energy):
-    loge = np.log10(energy)
-    #get the fit constants
-    PIP0 = 1.35485692
-    PIP1 = -0.02237097
-    PIP2 = 0.01398568
-    KPP = 0.94044349
-    DPP = 0.6864460702906747
-
-    CSK1 = 1.891
-    CSK2 = 0.2095
-    CSK3 = -2.157
-    CSK4 = 1.263
-
-    if loge<6:
-        y = DPP*10**(KPP*(PIP0+PIP1*loge+PIP2*loge**2))
-    else:
-        y = np.exp(CSK1 + CSK2*loge)+CSK3+CSK4*loge
-    return y
-
-def sigma_baryon(energy):
-    loge = np.log10(energy)
-    #get the fit constants
-    PIP0 = 1.35485692
-    PIP1 = -0.02237097
-    PIP2 = 0.01398568
-    KPP = 0.94044349
-    LPP = 0.9600303037501511
-
-    CSK1 = 2.269
-    CSK2 = 0.207
-    CSK3 = -0.9907
-    CSK4 = 1.277
-
-    if loge<6:
-        y = LPP*10**(KPP*(PIP0+PIP1*loge+PIP2*loge**2))
-    else:
-        y = np.exp(CSK1 + CSK2*loge)+CSK3+CSK4*loge
-    return y
-
-
-def set_event_kinematics(proj, energy, target):
-    if type(target)==int:
-        ev_kin = EventKinematics(elab = energy * GeV,
-            p1pdg = proj,
-#            nuc2_prop = target)
-            p2pdg = target)
-    else:
-        ev_kin = EventKinematics(elab = energy * GeV,
-            p1pdg = proj,
-            nuc2_prop = target)
-
-    return ev_kin
-
-def sigma_Dp(energy, generator):
-    DPP = 0.6979928863374517
-    CSK1 = 1.891
-    CSK2 = 0.2095
-    CSK3 = -2.157
-    CSK4 = 1.263
-    loge = np.log10(energy)
-
-    if energy<1e6:
-        generator.set_event_kinematics(set_event_kinematics(321, energy, 2212))
-        xs = DPP*generator.sigma_inel()
-    else:
-        xs = np.exp(CSK1 + CSK2*loge)+CSK3+CSK4*loge
-    return xs
-
-
-def sigma_Lp(energy, generator):
-    LPP = 0.9761791227127833
-    CSK1 = 2.269
-    CSK2 = 0.207
-    CSK3 = -0.9907
-    CSK4 = 1.277
-    loge = np.log10(energy)
-
-    if energy<1e6:
-        generator.set_event_kinematics(set_event_kinematics(321, energy, 2212))
-        xs = LPP*generator.sigma_inel()
-    else:
-        xs = np.exp(CSK1 + CSK2*loge)+CSK3+CSK4*loge
-    return xs
 
 ######## Interpolated charm hadron - ice interaction cross section
 dloc = '/data2/icecube/ssarkar/charm_muon_data/xs_fraction/charm_ice_xs.txt'
