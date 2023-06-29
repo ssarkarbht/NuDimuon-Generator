@@ -2,7 +2,7 @@
 
 import chromo as ch
 import particle
-from chromo.util import classproperty
+from chromo.util import classproperty, Nuclei
 import numpy as np
 import os,sys
 import json
@@ -30,6 +30,7 @@ class UpdatedSibyll23d(ch.models.Sibyll23d):
     '''Update the base sibyll model with new projectiles
     '''
     _projectiles = charm_hadrons
+    _targets = Nuclei()
 
     @classproperty
     def projectiles(cls):
