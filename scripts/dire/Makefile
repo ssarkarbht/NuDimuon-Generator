@@ -119,7 +119,6 @@ else
 	@echo "Error: $@ requires PROMC"
 endif
 
-
 # Clean.
 clean:
 	@rm -f dire;\

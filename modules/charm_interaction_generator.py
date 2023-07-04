@@ -111,6 +111,10 @@ if __name__ == '__main__':
     parser.add_option("-o", "--OutfileName", dest="OUT", type=str)
 
     (options, args) = parser.parse_args()
+    #print the command-line help message if arguments missing
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
 
     mfile = dataloc+"medium_properties.json"
     with open(mfile, "r") as f:
