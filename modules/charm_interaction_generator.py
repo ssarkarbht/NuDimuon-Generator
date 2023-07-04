@@ -1,5 +1,13 @@
 #!/bin/python
 
+'''
+Author : Sourav Sarkar
+Email : ssarkar1@ualberta.ca
+Description : This script performs the CHROMO
+hadronic interaction simulation of charm hadrons
+with target nucleus of the detector medium.
+'''
+
 import chromo as ch
 import particle
 from chromo.util import classproperty, Nuclei
@@ -36,7 +44,7 @@ class UpdatedSibyll23d(ch.models.Sibyll23d):
     def projectiles(cls):
         return cls._projectiles
 
-    #following defintiion forces the class to allow
+    #WARNING! following defintiion forces the class to allow
     #heavier targets, however sibyll backend fortran
     #run may fail due to out of limit error
     @classproperty
@@ -51,6 +59,9 @@ def get_name(pdgid):
 
 #set the event kinematics based on projectile and target
 def set_event_kinematics(proj, target, energy):
+    ''' Create a new event kinematics instance for each
+    simulated MC event energy grid point.
+    '''
     evkin = ch.kinematics.EventKinematics(proj, target,
                 elab = energy * ch.constants.GeV)
     return evkin
@@ -66,7 +77,6 @@ def get_muon_frac_theta(event):
     if len(xvals)>0:
         idx = np.argmax(xvals)
         return (pvals[idx], xvals[idx], avals[idx], len(xvals))
-
     return None
 
 def run_get_events(generator, nevents, event_k):
@@ -88,6 +98,7 @@ def run_get_events(generator, nevents, event_k):
 
 
 if __name__ == '__main__':
+    #parse command-line arguments
     from optparse import OptionParser
 
     parser = OptionParser()
@@ -104,35 +115,32 @@ if __name__ == '__main__':
     mfile = dataloc+"medium_properties.json"
     with open(mfile, "r") as f:
         medium = json.load(f)
-
     assert options.TGT in medium.keys(), f"Target {options.TGT} not in medium"
 
-    #get the energy array
-    enarr = np.logspace(np.log10(options.EMIN),
-            np.log10(options.EMAX), options.NGRID)
-
-    #energy grid info to save as metadata
-    metadata = np.array([options.EMIN, options.EMIN, options.NGRID])
-    #intialize the model
     target_prop = medium[options.TGT]
     target = (target_prop["mass_num"], target_prop["atom_num"])
     proj = options.PRJ
     assert proj in pdglist, f"Particle PDG {proj} not in the projectile list"
 
+    #get the energy array
+    enarr = np.logspace(np.log10(options.EMIN),
+            np.log10(options.EMAX), options.NGRID)
+    #energy grid info to save as metadata
+    metadata = np.array([options.EMIN, options.EMAX, options.NGRID])
+
+    #intialize the model
     init_kin = ch.kinematics.EventKinematics(proj, target,
             elab = 1000 * ch.constants.GeV)
     generator = UpdatedSibyll23d(init_kin)
 
     outfile = options.OUT
     array_dict = {}
-    #loop over the energy
+    #loop over the energy points
     for i, energy in enumerate(enarr):
         evkin = set_event_kinematics(proj, target, energy)
         dataset = run_get_events(generator,
                                 options.NEVE , evkin)
         array_dict[str(i)] = dataset
-        #print (metadata.shape)
-        #print (dataset.shape)
-        #data = np.vstack((metadata, dataset))
-        #np.save(itername, data)
+
+    #save all the arrays into npz file
     np.savez_compressed(outfile, energy=metadata, **array_dict)
