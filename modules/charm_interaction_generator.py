@@ -52,10 +52,8 @@ class UpdatedSibyll23d(ch.models.Sibyll23d):
         return cls._targets
 
 #get a reverse dictionary for charm hadron names
-def get_name(pdgid):
-    names = list(particle_dict.keys())
-    pdglist = [val['pdgid'] for _,val in particle_dict.items()]
-    return dict(zip(pdglist, names))
+names = list(particle_dict.keys())
+pdgnames = dict(zip(pdglist, names))
 
 #set the event kinematics based on projectile and target
 def set_event_kinematics(proj, target, energy):
@@ -138,6 +136,10 @@ if __name__ == '__main__':
     generator = UpdatedSibyll23d(init_kin)
 
     outfile = options.OUT
+    out_prefix = outfile.split(".")[0]
+    out_suffix = outfile.split(".")[-1]
+    outfname = out_prefix + "_" + pdgnames[proj] + "." + out_suffix
+
     array_dict = {}
     #loop over the energy points
     for i, energy in enumerate(enarr):
@@ -147,4 +149,4 @@ if __name__ == '__main__':
         array_dict[str(i)] = dataset
 
     #save all the arrays into npz file
-    np.savez_compressed(outfile, energy=metadata, **array_dict)
+    np.savez_compressed(outfname, energy=metadata, **array_dict)
