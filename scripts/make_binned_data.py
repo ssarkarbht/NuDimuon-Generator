@@ -97,9 +97,13 @@ metadata = np.array(['EnergyPoints : Parent hadron energies used for simulation'
     '<hadron>_branchingRatio : energy, # muons, # total evnets'])
 
 #make the histogram bins
-# fractional energy bins
-minfrac = np.log10(1/options.EMAX) #assuming lowest possible bins @1GeV Muons
-fbins = np.logspace(minfrac, 0., options.NBIN+1)
+# fractional energy bins 
+# (log-scale for interaction, lin-scale for decay)
+if options.SIM == 'interaction':
+    minfrac = np.log10(1/options.EMAX) #assuming lowest possible bins @1GeV Muons
+    fbins = np.logspace(minfrac, 0., options.NBIN+1)
+elif options.SIM == 'decay':
+    fbins = np.linspace(0., 1., options.NBIN+1)
 fbincen = 0.5*(fbins[:-1]+fbins[1:])
 
 # opening angle bins (assuming highest opening angle @90 degrees)
@@ -137,7 +141,8 @@ for particle in names:
 
     eninfo = data['energy']
     #build the charm hadron energy array
-    energies = np.logspace(eninfo[0], eninfo[1], int(eninfo[2]))
+    #energies = np.logspace(eninfo[0], eninfo[1], eninfo[2])
+    energies = np.logspace(np.log10(eninfo[0]), 8, int(eninfo[2]))
 
     #initialize empty arrays
     farr = np.zeros((len(energies)+1, len(fbincen)))
@@ -167,5 +172,7 @@ for particle in names:
     hist_dict[particle+'_multiplicity'] = marr
     hist_dict[particle+'_branchingRatio'] = br_arr
 
+#save the energy points
+hist_dict["EnergyPoints"] = energies
 #save the histogrammed data into numpy compressed file
 np.savez_compressed(options.OUT, metadata=metadata, **hist_dict)
