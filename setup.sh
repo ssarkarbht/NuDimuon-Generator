@@ -10,6 +10,8 @@ echo "Setting up paths..."
 export DIMUON_REPO=$(echo `pwd`)
 #repo parent directory path is required for some python module and data loading to work
 
+#add module directory to python path
+export PYTHONPATH=$PYTHONPATH:$DIMUON_REPO/modules
 #------ set up lhapdf paths
 export LHAPDF_DATA_PATH=$DIMUON_REPO/data/pdfsets
 

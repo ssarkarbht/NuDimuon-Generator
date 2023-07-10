@@ -216,7 +216,7 @@ if __name__ == "__main__":
     energy = np.logspace(np.log10(emin), np.log10(emax), npoints)
 
     # data output directory
-    outdir = repo_dir + "/data/charm_muon_data/charm_hadron_cross_section/"
+    outdir = repo_dir + "/data/charm_data/cross_sections/"
 
     # compute cross sections for all the target medium in the list
     for med in matlist:
