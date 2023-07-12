@@ -34,7 +34,12 @@ class GenerateEvents(CharmMuonGenerator):
 
         # initialize the output file data structure
         self.hfile = h5.File(outfile, 'a')
-        self.hgroup = self.hfile.create_group('EventParticleList')
+        #if the file contains stuff, overwrite
+        try:
+            self.hgroup = self.hfile.create_group('EventParticleList')
+        except:
+            del self.hfile['EventParticleList']
+            self.hgroup = self.hfile.create_group('EventParticleList')
 
         # load the input event file data
         f = open(infile, 'r')
@@ -98,7 +103,7 @@ class GenerateEvents(CharmMuonGenerator):
         prim_nu = (1, nupdg, nuen, 0, 0, 0)
         part_list.append(prim_nu)
 
-        #insert the primary outgoing muon
+        #insert the primary outgoing muon (or other lepton)
         prim_mu = get_particle(self.lines[idx+1])
         part_list.append((2, prim_mu[0], prim_mu[1],
                     prim_mu[2], prim_mu[3], 0))
@@ -203,21 +208,39 @@ class GenerateEvents(CharmMuonGenerator):
                     event_arr[ip] = p
                 self.hgroup.create_dataset(key, data=event_arr)
                 self.weight_dict[i] = weights
-        #write the full weight dictionary
-        self.hfile.create_dataset('CharmWeights', data=self.weight_dict)
+        #write the full weight dictionary, overwrite if exists
+        try:
+            self.hfile.create_dataset('CharmWeights', data=self.weight_dict)
+        except:
+            del self.hfile['CharmWeights']
+            self.hfile.create_dataset('CharmWeights', data=self.weight_dict)
         #close the h5file
         self.hfile.close()
         return None
 
 if __name__=='__main__':
-    #test output
-    infile = "/testbed/test03/1101011_charmout.txt"
-    outfile = "/testbed/test06/output.h5"
-    paramdir = "/home/sourav/github/dimuon_generator/data/charm_data/muon_tables"
-    xsfile = "/home/sourav/github/dimuon_generator/data/charm_data/cross_sections/CC_Charm_Fraction.txt"
-    seed = 12345
-    medium = "ice"
-    threshold = 1e1
+    from optparse import OptionParser
+    #add command-line arguments
+    parser = OptionParser()
+    # I/O
+    parser.add_option("-i", "--InputFilename", dest="IFILE", type=str)
+    parser.add_option("-o", "--OutputFilename", dest="OFILE", type=str)
+    # Pregenerated Data
+    parser.add_option("-p", "--ParamDir", dest="PDIR", type=str,
+            default= data_dir+"charm_data/muon_tables")
+    parser.add_option("-x", "--CrossSection", dest="CROSS", type=str,
+            default= data_dir+"charm_data/cross_sections/CC_Charm_Fraction.txt")
 
-    gen_ev = GenerateEvents(infile, outfile, paramdir, xsfile, seed, medium, threshold)
+    #Generator details
+    parser.add_option("-s", "--RandomSeed", dest="SEED", type=int)
+    parser.add_option("-m", "--TargetMedium", dest="MED", type=str)
+    parser.add_option("-t", "--MuThreshold", dest="THR", type=float,
+            default=1e1)
+
+    (options,args) = parser.parse_args()
+
+    gen_ev = GenerateEvents(options.IFILE, options.OFILE,
+                        options.PDIR, options.CROSS, options.SEED,
+                        options.MED, options.THR)
     gen_ev.run_generator()
+    #Done.
