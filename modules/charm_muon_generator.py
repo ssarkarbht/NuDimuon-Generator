@@ -367,7 +367,7 @@ class CharmMuonGenerator:
         '''Computing the decay and interaction length for
         the given charm hadron and energy
         '''
-        #Decay length
+        #Decay length (cm)
         DL = energy*self.TAU[idx]*CONSTANT['light_speed']['value']/self.MASS[idx]
         #get the interaction length sample
         if abs(idx)<1000:#mesons
@@ -376,7 +376,7 @@ class CharmMuonGenerator:
             #xs = sigma_baryon(energy)
             #xs = sigma_Lp(energy, self.generator)
             xs = self.charm_intxs[1](energy)
-        #Interaction length
+        #Interaction length (cm)
         IL = self.PROP['mole_mass']/(self.PROP['density']*CONSTANT['avogadro']['value']*xs)
 
         return (DL, IL)
@@ -387,15 +387,16 @@ class CharmMuonGenerator:
         Input: idx (int) : Charm Hadron PDG CODE
                energy (float) : Energy of the Charm hadron
         Returns: Interaction Type (int): 1 for decay, 2 for interaction
-                 Target Type (str): 'OX' for Oxygen, 'H' for Hydrogen
+                 Target Type (str): None for decay, atom name for interaction
+                 Length (float): Decay or Interaction length
         '''
-        #By default, the charm hadron decays for energy below 100GeV
-        if energy<100.:
-            return 1, None
-        
         #get the decay and interaction lengths
         DL, IL = self.get_decay_interaction_length(idx, energy)
 
+        #By default, the charm hadron decays for energy below 100GeV
+        if energy<100.:
+            return 1, None, DL
+        
         cdf_sample = self.rng.random(nsample)
         #sampled length from the decay length distribution
         Dx = -1*DL*np.log(1-cdf_sample)
@@ -405,12 +406,12 @@ class CharmMuonGenerator:
         Ix = -1*IL*np.log(1-cdf_sample)
 
         #Case : Charm Hadron Decays
-        if Dx<=Ix: return 1, None
+        if Dx<=Ix: return 1, None, Dx
         #Case : Charm Hadron interactions
         elif Dx>Ix:
             #sample a random atom from the medium composition
             target = self.rng.choice(self.atom_arr)
-            return 2, target
+            return 2, target, Ix
 
     def sample_muon(self, idx, energy):
         '''This is a wrapper function that calls for the above
@@ -432,14 +433,14 @@ class CharmMuonGenerator:
             return None
 
         #decision on decay vs. interaction
-        orig, ttype = self.sample_decay_interaction(idx, energy)
+        orig, ttype, length = self.sample_decay_interaction(idx, energy)
         if orig==1:
             muen = self.sample_decay_fraction(idx, energy)
             br = self.decayMuon.brs[PDGNAMES[idx]](np.log10(energy))
         elif orig==2:
             muen = self.sample_interaction_fraction(ttype, idx, energy)
             br = self.interactionDict[ttype].brs[PDGNAMES[idx]](np.log10(energy))
-        return (float(muen), orig, ttype, br)
+        return (float(muen), orig, ttype, br, length)
 
     def compute_fractional_xs(self, energy, nutype):
         '''Computes the charm production fractional cross-section
@@ -456,7 +457,7 @@ class CharmMuonGenerator:
         2nd,3rd... charm hadrons)
         '''
         if energy<=10.: return False
-        orig, ttype = self.sample_decay_interaction(idx, energy)
+        orig, ttype, length = self.sample_decay_interaction(idx, energy)
         rand = self.rng.random(1)
         if orig==1:
             br = self.decayMuon.brs[PDGNAMES[idx]](np.log10(energy))
