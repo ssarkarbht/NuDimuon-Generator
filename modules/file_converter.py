@@ -14,7 +14,7 @@ import numpy as np
 import h5py as h5
 import sys, os
 try:
-    from icecube import icetray, dataio, dataclasses, LeptonInjector
+    from icecube import icetray, dataio, dataclasses
     from I3Tray import *
 except:
     print ("IceTray environment not loaded.")
@@ -46,7 +46,11 @@ def zenith_to_theta(zenith):
     return np.pi-zenith
 def azimuth_to_phi(azimuth):
     phi = np.pi + azimuth
-    if phi >= 2*np.pi: phi -= 2*np.pi
+    if isinstance(azimuth, np.ndarray):
+        modidx = np.where(phi>=2*np.pi)[0]
+        phi[modidx] = phi[modidx] - 2*np.pi
+    else:
+        if phi >= 2*np.pi: phi -= 2*np.pi
     return phi
 
 class H5I3Converter(icetray.I3Module):
@@ -178,7 +182,7 @@ class H5H5I3Converter(H5I3Converter):
         an additional file.
         '''
         super().__init__(context)
-        self.AddParamter('LIFilename', #name of the initial LI file
+        self.AddParameter('LIFilename', #name of the initial LI file
                 'Lepton Injector HDF5 filename',
                 'li_file.h5')
 
