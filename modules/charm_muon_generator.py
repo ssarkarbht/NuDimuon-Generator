@@ -440,7 +440,7 @@ class CharmMuonGenerator:
         elif orig==2:
             muen = self.sample_interaction_fraction(ttype, idx, energy)
             br = self.interactionDict[ttype].brs[PDGNAMES[idx]](np.log10(energy))
-        return (float(muen), orig, ttype, br, length)
+        return (float(muen), orig, ttype, br, length*CONSTANT['cmTOm'])
 
     def compute_fractional_xs(self, energy, nutype):
         '''Computes the charm production fractional cross-section
