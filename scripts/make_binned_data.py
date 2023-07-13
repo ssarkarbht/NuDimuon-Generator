@@ -30,11 +30,8 @@ parser.add_option("-o", "--OutputDir", dest="OUT", type=str)
 (options,args) = parser.parse_args()
 
 # get the repo directory path
-#repo_dir = os.environ["DIMUON_REPO"]
-#dataloc = repo_dir + "/data/constants_particles_materials/"
-
-# testbed path (delete before github push)
-dataloc = "../test04/"
+repo_dir = os.environ["DIMUON_REPO"]
+dataloc = repo_dir + "/data/constants_particles_materials/"
 
 # get the target materials and projectile properties
 pfile = dataloc+"particles.json"
@@ -48,7 +45,7 @@ for key, val in particle_dict.items():
 #get a reverse dictionary for charm hadron names
 names = list(particle_dict.keys())
 pdgnames = dict(zip(pdglist, names))
-
+namespdg = dict(zip(names, pdglist))
 
 mfile = dataloc+"medium_properties.json"
 with open(mfile, "r") as f:
@@ -119,13 +116,29 @@ bin_dict = {'fbins':fbins, 'abins':abins, 'mbins':mbins}
 for particle in names:
     if options.SIM=='decay':
         fname = datadir+particle+'.npz'
+        try:
+            data = np.load(fname)
+            print (f"Histogramming {particle} decay...")
+        except:
+            dummy = pdgnames[abs(namespdg[particle])]
+            print (f"Data for {particle} not found, replacing with {dummy}")
+            fname = datadir+dummy+'.npz'
+            data = np.load(fname)
     elif options.SIM=='interaction':
         fname = datadir + options.TGT + '_' + particle + '.npz'
-    #load the simulation data
-    data = np.load(fname)
+        try:
+            data = np.load(fname)
+            print (f"Histogramming {particle} interaction...")
+        except:
+            dummy = pdgnames[abs(namespdg[particle])]
+            print (f"Data for {particle} not found, replacing with {dummy}")
+            fname = datadir + options.TGT + '_' +dummy+'.npz'
+            data = np.load(fname)
+
     eninfo = data['energy']
     #build the charm hadron energy array
-    energies = np.logspace(eninfo[0], eninfo[1], eninfo[2])
+    #energies = np.logspace(eninfo[0], eninfo[1], eninfo[2])
+    energies = np.logspace(np.log10(eninfo[0]), 8, int(eninfo[2]))
 
     #initialize empty arrays
     farr = np.zeros((len(energies)+1, len(fbincen)))
@@ -141,7 +154,7 @@ for particle in names:
 
     #loop over each energy points
     for idx, en in enumerate(energies):
-        arr = data[str(i)]
+        arr = data[str(idx)]
         num, dum, fhist, ahist, mhist = make_histo(arr, en, bin_dict)
         #start filling the arrays
         br_arr[idx] = (en, num, dum)
@@ -155,5 +168,7 @@ for particle in names:
     hist_dict[particle+'_multiplicity'] = marr
     hist_dict[particle+'_branchingRatio'] = br_arr
 
+#save the energy points
+hist_dict["EnergyPoints"] = energies
 #save the histogrammed data into numpy compressed file
 np.savez_compressed(options.OUT, metadata=metadata, **hist_dict)
