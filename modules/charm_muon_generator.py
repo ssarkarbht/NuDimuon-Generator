@@ -16,9 +16,66 @@ import numpy as np
 import scipy.interpolate as ip
 from numpy.random import default_rng
 import sys, os
+from glob import glob
+import json
 
+#define the directory paths
 repo_dir = os.environ["DIMUON_REPO"]
 data_dir = repo_dir + "/data/"
+
+#load the constants
+cfile = data_dir + "constants_particles_materials/constants.json"
+with open(cfile, 'r') as f:
+    CONSTANT = json.load(f)
+
+#particle list
+pfile = data_dir + "constants_particles_materials/particles.json"
+with open(pfile, 'r') as f:
+    PARTICLE_DICT = json.load(f)
+#get list of charm hadron pdg codes
+pdglist = []
+for key, val in PARTICLE_DICT.items():
+    pdgid = val['pdgid']
+    pdglist.append(pdgid)
+#get a reverse dictionary for charm hadron names
+names = list(PARTICLE_DICT.keys())
+PDGNAMES = dict(zip(pdglist, names))
+NAMESPDG = dict(zip(names, pdglist))
+
+#material list
+mfile = data_dir + "constants_particles_materials/medium_properties.json"
+with open(mfile, "r") as f:
+    MEDIUM = json.load(f)
+
+#Charm Hadron - Nucleus Cross Section list
+INTXS_DICT = {}
+xsdir = data_dir + "charm_data/cross_sections/"
+xsfiles = glob(xsdir+"*.dat")
+for med in MEDIUM.keys():
+    medname = "charm_"+med+"_sigma.dat"
+    fname = xsdir+medname
+    exist = fname in xsfiles
+    if exist:
+        INTXS_DICT[med] = fname
+    else:
+        print (f"WARNING! {medname} does not exist in the given location.")
+
+class CharmSigma:
+    ''' Load the charm interaction cross section data
+    '''
+    def __init__(self, x,y):
+        logx = np.log10(x)
+        logy = np.log10(y)
+        self.func = ip.interp1d(logx, logy, kind='slinear')
+    def __call__(self, energy):
+        return 10**(self.func(np.log10(energy)))
+
+def get_interaction_sigmas(xfile):
+    ''' Returns the charm meson and baryon cross-section functions
+    '''
+    data = np.loadtxt(xfile, comments="#")
+    return CharmSigma(data[:,0], data[:,1]), CharmSigma(data[:,0], data[:,2])
+
 
 #Useful functions to be used in the main class
 def convert_linlog(x, to='log'):
@@ -29,20 +86,22 @@ def convert_linlog(x, to='log'):
     elif to=='lin':
         return 10**x
 
-def get_decay_cdf(fname):
+# Create Muon fractional energy (decay) CDF
+# fractional energy in linear scale
+def get_decay_cdf(data):
     '''Returns discrete cdf values at
     discrete energy fraction points
     '''
-    data = np.loadtxt(fname, comments='#')
     xvals = data[0]
-    yvals = data[1:]#for 300 hadron energy points
+    yvals = data[1:]#for 350 hadron energy points
     #compute the average of the distributions
     #as the decay energy distribution for all energies
     #are alomst the same
     y_avg = np.average(yvals, axis=0)
 
     #get the bin width
-    XBINS = np.linspace(0,1,101)#bins used in the dataset
+    nbins = len(xvals)
+    XBINS = np.linspace(0,1, nbins+1)#bins used in the dataset
     binwidth = np.diff(XBINS)[0]#all elements are same
     #compute the discrete cdf values
     cdf = np.cumsum(y_avg)*binwidth
@@ -50,7 +109,6 @@ def get_decay_cdf(fname):
     #add the last cdf point (1,1)
     cdf = np.append(cdf,1)
     xvals = np.append(xvals,1)
-
     return (xvals, cdf)
 
 def logscale_cdf(x,y,binwidth):
@@ -62,22 +120,22 @@ def logscale_cdf(x,y,binwidth):
     x   = np.append(x, 1)
     return (x,cdf)
 
-def get_interaction_cdf(fname):
+def get_interaction_cdf(data, en_points):
     ''' Returns 2d interpolation function
     to compute cdf values from (at different
     hadron energies)
     '''
     #hadron energy simulation points in the dataset
-    EBINS = np.logspace(2,8,300)
+    EBINS = en_points
     #muon energy fraction bin edges computed in the
     #dataset
-    XBINS = np.logspace(-8,0,101)
-    #binwidth in logscale
-    LOG_BIN_WIDTH = np.diff(np.linspace(-8,0,101))[0]
-
-    data = np.loadtxt(fname, comments='#')
     xvals = data[0]
     yvals = data[1:]
+    nbins = len(xvals)
+    XBINS = np.logspace(np.log10(1/EBINS[-1]),0,nbins+1)
+    XLOGBINS = np.linspace(np.log10(1/EBINS[-1]),0,nbins+1)
+    #binwidth in logscale
+    LOG_BIN_WIDTH = np.diff(XLOGBINS)[0]
 
     #prepare the 2d arrays for interpolation
     #array for discrete cdf points across the 2d grid
@@ -91,255 +149,269 @@ def get_interaction_cdf(fname):
 
     func = ip.RectBivariateSpline(logxvals, logevals,
             cdf_arr.T, kx=1, ky=1, s=0)
-    return func
+    return xvals, func
 
-def br_intepolation(fname):
-    data = np.loadtxt(fname, comments='#')
+def br_interpolation(data):
+    '''Builds the muon branching ratio for the 
+    corresponding charm hadron and simulation type
+    '''
     x = data[:,0]
     y = data[:,1]/data[:,2]
     logx = np.log10(x)
-
     func = ip.interp1d(logx, y, kind='slinear')
     return func
 
-######## Interpolated charm hadron - ice interaction cross section
-dloc = '/data2/icecube/ssarkar/charm_muon_data/xs_fraction/charm_ice_xs.txt'
-charm_ice_data = np.loadtxt(dloc, comments='#')
-loge = np.log10(charm_ice_data[:,0])
-logx1 = np.log10(charm_ice_data[:,1])
-logx2 = np.log10(charm_ice_data[:,2])
-dicell = ip.interp1d(loge, logx1, kind='slinear')
-licell = ip.interp1d(loge, logx2, kind='slinear')
-def sigma_Dice(energy):
-    return 10**(dicell(np.log10(energy)))
-def sigma_Lice(energy):
-    return 10**(licell(np.log10(energy)))
-###################################################################
+class CharmMuon:
+    ''' Loads the muon energy fraction cdfs and BR
+    '''
+    def __init__(self, fname, simtype):
+        self.data = np.load(fname)
+        self.energy = self.data['EnergyPoints']
+        self.type = simtype
+        self.cdfs = {}
+        self.inv_cdfs = {}
+        self.brs = {}
 
+    def build_brs(self, particles):
+        ''' Takes the list of particles and builds the
+        branchign ratio interpolator
+        '''
+        for part in particles:
+            try:
+                data = self.data[part+"_branchingRatio"]
+            except:
+                dummy = PDGNAMES[abs(NAMESPDG[part])]
+                data = self.data[dummy+"_branchingRatio"]
+                print (f"{part} data missing, using {dummy} instead")
+            fn = br_interpolation(data)
+            self.brs[part] = fn
+        return None
+
+    def build_decay_cdfs(self, particles):
+        ''' Takes the muon energy fraction data and builds
+        the interpolation functions for cdfs and inverse
+        cdfs
+        '''
+        for part in particles:
+            try:
+                data = self.data[part+"_energyFraction"]
+            except:
+                dummy = PDGNAMES[abs(NAMESPDG[part])]
+                data = self.data[dummy+"_energyFraction"]
+                print (f"{part} data missing, using {dummy} instead")
+            x,y = get_decay_cdf(data)
+            cdf_fn = ip.interp1d(x,y,kind='linear',
+                    bounds_error=False, fill_value='extrapolate')
+            inv_cdf_fn = ip.interp1d(y,x, kind='linear',
+                    bounds_error=False, fill_value='extrapolate')
+            self.cdfs[part] = cdf_fn
+            self.inv_cdfs[part] = inv_cdf_fn
+        self.fraction = x
+        return None
+
+    def build_interaction_cdfs(self, particles):
+        ''' Takes the muon energy fraction data and builds
+        the 2D interpolation function for interaction cdfs
+        '''
+        for part in particles:
+            try:
+                data = self.data[part+"_energyFraction"]
+            except:
+                dummy = PDGNAMES[abs(NAMESPDG[part])]
+                data = self.data[dummy+"_energyFraction"]
+                print (f"{part} data missing, using {dummy} instead")
+            x,cdf_fn = get_interaction_cdf(data, self.energy)
+
+            self.cdfs[part] = cdf_fn
+        self.fraction = x
+        return None
+
+    def build(self, particles):
+        ''' This is a wrapper function that calls the decay/interaction
+        cdf builders accrodingly
+        '''
+        self.build_brs(particles)
+        if self.type == "interaction":
+            self.build_interaction_cdfs(particles)
+        elif self.type == "decay":
+            self.build_decay_cdfs(particles)
+        else:
+            print (f"Unknown simulation type {self.type}, building nothing.")
+        return None
 
 class CharmMuonGenerator:
     '''
     Generates secondary charm muon from parametrized
-    datasets (generated from PYTHIA and Sibyll2.3d (impy))
+    datasets (generated from PYTHIA and Sibyll2.3d (chromo))
     and computes the probability of the event from
     charm production cross-section and muon branching
     ratio
     '''
-    def __init__(self, decay_fractions, interaction_fractions,
-            decay_br, interaction_br, charm_xs,
-            seed):
+    def __init__(self, param_dir, prod_xsfile,
+            seed, target='ice', mu_emin=10.0):
         '''Intializes all the interpolation functions to be used
         in the sampling processes.
-        Inputs: decay_fractions (list) : list of files containing
-                the binned distributions of muon energy fractions
-                (should have 11 files for 11 charmed hadrons)
+        Inputs: param_dir (str) : directory path containing the
+                parametric tables
 
-                interaction_fractions (dict) : each key has list of 
-                files (two keys: 'OX' and 'H' for interactions)
-                containing the binned distributions of muon energy
-                fractions from interaction with Oxygen anf Hydrogen
+                xsfile (str) : path to the charm hadron interaction
+                cross section file
 
                 seed (int) : Random seed to be used for sampling
+
+                target (str) : Name of the target medium in which to
+                sample the charm muons
         '''
-        #--------------Energy Sampling Interpolations--------------
-        #get the energy fraction cdfs to sample from
-        self.decay_cdfs     = []
-        self.decay_inv_cdfs = []
-        for fname in decay_fractions:
-            x,y = get_decay_cdf(fname)
-            cdf = ip.interp1d(x,y,kind='linear',
-                    bounds_error=False, fill_value='extrapolate')
-            inv_cdf = ip.interp1d(y,x, kind='linear',
-                    bounds_error=False, fill_value='extrapolate')
+        #--------------Decay Interpolations--------------
+        decay_file = param_dir + "/decay_table.npz"
+        self.decayMuon = CharmMuon(decay_file, 'decay')
+        #build the interpolation functions
+        self.decayMuon.build(NAMESPDG.keys())
 
-            self.decay_cdfs.append(cdf)
-            self.decay_inv_cdfs.append(inv_cdf)
+        #--------------Interaction Interpolations--------
+        self.interactionDict = {}
+        self.atom_arr = []
+        if MEDIUM[target]['composite'] is not None:
+            for i, atom in enumerate(MEDIUM[target]['composite']):
+                int_file = param_dir + "/" + atom + "_table.npz"
+                intMuon = CharmMuon(int_file, 'interaction')
+                intMuon.build(NAMESPDG.keys())
+                self.interactionDict[atom] = intMuon
+                self.atom_arr += [atom for _ in range(MEDIUM[target]['ratio'][i])]
 
-        interaction_Ox_2dcdfs     = []
-        interaction_H_2dcdfs     = []
-        for fname in interaction_fractions['OX']:
-            func = get_interaction_cdf(fname)
-            interaction_Ox_2dcdfs.append(func)
-        for fname in interaction_fractions['H']:
-            func = get_interaction_cdf(fname)
-            interaction_H_2dcdfs.append(func)
-        #store the functions in a dictionary
-        self.interaction_2Dcdfs = {}
-        self.interaction_2Dcdfs['OX'] = interaction_Ox_2dcdfs
-        self.interaction_2Dcdfs['H']  = interaction_H_2dcdfs
-        
+        elif MEDIUM[target]['composite'] is None:
+            int_file = param_dir + "/" + target + "_table.npz"
+            intMuon = CharmMuon(int_file, 'interaction')
+            intMuon.build(NAMESPDG.keys())
+            self.interactionDict[target] = intMuon
+            self.atom_arr += [target]
         #--------------Random Number generator--------------------
         #initialize the ssample generator
         self.rng = default_rng(seed=seed)
 
         #--------------Muon Energy Threshold Setup----------------
         #set the muon energy threshold for sampling
-        self.EMU_MIN = 10.0#GeV
-        #minimum fraction value in the binned data
-        XBINS_DECAY = np.linspace(0,1,101)
-        self.XMIN_DECAY = 0.5*(XBINS_DECAY[:-1]+XBINS_DECAY[1:])[0]
-
-        XBINS_INT = np.logspace(-8, 0, 101)
-        self.XMIN_INT = 0.5*(XBINS_INT[:-1]+XBINS_INT[1:])[0]
+        self.EMU_MIN = mu_emin #GeV
 
         #--------------Decay/Interaction Length Setup-------------
-        #Define the hadron masses and decay lifetime
-        #taken from pdg tables
-        #charm hadron mass in GeV
-        self.MASS = [1.86966, 1.86966, 1.86484, 1.86484,
-                1.96835, 1.96835, 2.46771, 2.46771,
-                2.28646, 2.47044, 2.6952]
-        #charm hadron mean decay lifetimes in seconds
-        self.TAU = [1040e-15, 1040e-15, 410.1e-15, 410.1e-15,
-                504e-15, 504e-15, 456e-15, 456e-15,
-                202.4e-15, 153e-15, 268e-15]
-        #speed of light in cm/s
-        self.C = 2.99792458e10
-        #define the nuclear interaction length in ice
-        #LambdaI = 83.3#gm/cm^2
-        #Rho     = 0.917#gm/cm^3
-        #self.ILENGTH = LambdaI/Rho
+        self.MASS = {}
+        self.TAU = {}
+        for key, val in PARTICLE_DICT.items():
+            self.MASS[val['pdgid']] = val['mass']
+            self.TAU[val['pdgid']] = val['lifetime']
+        # Target properties
+        self.PROP = MEDIUM[target]
 
-        #ice molecular mass
-        self.MICE = 18.02 #gm/mol
-        #ice density
-        self.RHO = 0.917 #gm/cm^3
-        #avogadro number times mb to cm^2
-        self.NA = 6.02214076e-4 #cm^2/mb/mol
+        #--------------Charm cross-section Setup-----------------
+        #interaction cross-section
+        func1, func2 = get_interaction_sigmas(INTXS_DICT[target])
+        self.charm_intxs = [func1, func2]
 
-        #--------------Muon BR Setup------------------------------
-        #get interpolation function of decay BR
-        self.decay_BR = []
-        for fname in decay_br:
-            func = br_intepolation(fname)
-            self.decay_BR.append(func)
-
-        #get interpolations for interaction BR
-        self.interaction_BR = {'OX':[], 'H':[]}
-        for fname in interaction_br['OX']:
-            func = br_intepolation(fname)
-            self.interaction_BR['OX'].append(func)
-        for fname in interaction_br['H']:
-            func = br_intepolation(fname)
-            self.interaction_BR['H'].append(func)
-
-        #--------------Charm Fractional XS Setup-----------------
-        charm_data = np.loadtxt(charm_xs, comments='#')
-        loge       = np.log10(charm_data[:,0])
-        nu_xs      = charm_data[:,1]
-        nubar_xs   = charm_data[:,2]
-
-        func1 = ip.interp1d(loge, nu_xs, kind='slinear',
+        #charm quark production fraction
+        prod_data = np.loadtxt(prod_xsfile, comments='#')
+        loge = np.log10(prod_data[:,0])
+        nu_xs = prod_data[:,1]
+        nubar_xs = prod_data[:,2]
+        frac1 = ip.interp1d(loge, nu_xs, kind='slinear',
                 bounds_error=False, fill_value='extrapolate')
-        func2 = ip.interp1d(loge, nubar_xs, kind='slinear',
-                bounds_error=False, fill_value='extrapolate')
-        self.charm_xs = [func1, func2]
 
+        frac2 = ip.interp1d(loge, nubar_xs, kind='slinear',
+                bounds_error=False, fill_value='extrapolate')
+        self.charm_prodfrac = [frac1, frac2]
 
     def sample_decay_fraction(self, idx, energy, nsample=1):
         ''' Sample muon energy from charm hadron decays.
-        Input: idx (int) : charm hadron identifier
-               energy (float) : energy of the charm hadron (in GeV)
-               (for the purpose of setting the sampling threshold)
+        Input: idx (int) : charm hadron pdgcode
+               energy (float) : energy of the parent charm hadron (GeV)
         Returns: Sampled muon energy (floats)
         '''
-        x_min = max(self.EMU_MIN/energy, self.XMIN_DECAY)
+        x_min = max(self.EMU_MIN/energy, self.decayMuon.fraction[0])
         assert x_min<=1., "Minimum energy fraction above the hadron energy"
-        cdf_min = self.decay_cdfs[idx](x_min)
-
+        
+        cdf_min = self.decayMuon.cdfs[PDGNAMES[idx]](x_min)
         cdf_sample = self.rng.random(int(nsample))*(1-cdf_min)+cdf_min
-        x_sample = self.decay_inv_cdfs[idx](cdf_sample)
+        x_sample = self.decayMuon.inv_cdfs[PDGNAMES[idx]](cdf_sample)
+
         return x_sample*energy
-        #return x_sample, cdf_min
 
     def sample_interaction_fraction(self, target, idx, energy, nsample=1):
-        ''' Sample muon energy from charm hadron interaction in Ice.
-        Input: target (str) : target type to sample from ('OX' or 'H')
-               idx (int) : charm hadron identifier
+        ''' Sample outgoing muon energy from charm hadron interaction in 
+        the given target atom.
+        Input: target (str) : target atom name
+               idx (int) : charm hadron pdg code
                energy (float) : energy of the charm hadron (in GeV)
         Returns: Sampled muon energy (floats)
         '''
-        x_min = max(self.EMU_MIN/energy, self.XMIN_INT)
+        target_cdf = self.interactionDict[target]
+        x_min = max(self.EMU_MIN/energy, target_cdf.fraction[0])
         assert x_min<=1., "Minimum energy fraction above the hadron energy"
 
         #get sample cdf points from 2d interpolation
         log_xmin = convert_linlog(x_min)
-        grid_frac   = np.linspace(log_xmin, 0, 100)
+        #generate a 1D grid fro building inverse CDF for the given energy
+        nbins = len(target_cdf.fraction)
+        grid_frac   = np.linspace(log_xmin, 0, nbins)
         grid_energy = np.repeat(np.log10(energy), len(grid_frac))
-        grid_cdf    = self.interaction_2Dcdfs[target][idx].ev(grid_frac, grid_energy)
+        grid_cdf    = target_cdf.cdfs[PDGNAMES[idx]].ev(grid_frac, grid_energy)
         cdf_min = min(grid_cdf)
 
-        #generate inverse cdf on-the-fly
+        #generate 1D inverse cdf on-the-fly
         inv_cdf = ip.interp1d(grid_cdf, grid_frac, kind='linear',
                 bounds_error=False, fill_value = 'extrapolate')
         
         cdf_sample = self.rng.random(int(nsample))*(1-cdf_min)+cdf_min
         x_sample = inv_cdf(cdf_sample)#in log-scale
         return 10**x_sample*energy
-        #return x_sample, cdf_min
 
     def get_decay_interaction_length(self, idx, energy):
-        '''Checking the decay and interaction length for
-        each charm hadron
+        '''Computing the decay and interaction length for
+        the given charm hadron and energy
         '''
-        DL = energy*self.TAU[idx]*self.C/self.MASS[idx]
+        #Decay length (cm)
+        DL = energy*self.TAU[idx]*CONSTANT['light_speed']['value']/self.MASS[idx]
         #get the interaction length sample
-        if idx<6:#mesons
-            #xs = sigma_meson(energy)
-            #xs = sigma_Dp(energy, self.generator)
-            xs = sigma_Dice(energy)
-        elif idx>=6:#hadrons
+        if abs(idx)<1000:#mesons
+            xs = self.charm_intxs[0](energy)
+        elif abs(idx)>=1000:#baryons
             #xs = sigma_baryon(energy)
             #xs = sigma_Lp(energy, self.generator)
-            xs = sigma_Lice(energy)
-        IL = self.MICE/(self.RHO*self.NA*xs)
+            xs = self.charm_intxs[1](energy)
+        #Interaction length (cm)
+        IL = self.PROP['mole_mass']/(self.PROP['density']*CONSTANT['avogadro']['value']*xs)
 
         return (DL, IL)
 
     def sample_decay_interaction(self, idx, energy, nsample=1):
         ''' Samples the fate of the Charm hadrons between
         decay and interaction in Ice.
-        Input: idx (int) : Charm Hadron identifier
+        Input: idx (int) : Charm Hadron PDG CODE
                energy (float) : Energy of the Charm hadron
         Returns: Interaction Type (int): 1 for decay, 2 for interaction
-                 Target Type (str): 'OX' for Oxygen, 'H' for Hydrogen
+                 Target Type (str): None for decay, atom name for interaction
+                 Length (float): Decay or Interaction length
         '''
-        #get the decay length sample
-        DL = energy*self.TAU[idx]*self.C/self.MASS[idx]
+        #get the decay and interaction lengths
+        DL, IL = self.get_decay_interaction_length(idx, energy)
+
+        #By default, the charm hadron decays for energy below 100GeV
+        if energy<100.:
+            return 1, None, DL
+        
         cdf_sample = self.rng.random(nsample)
-        #inverse cdf if decay length distribution
+        #sampled length from the decay length distribution
         Dx = -1*DL*np.log(1-cdf_sample)
         
-        if energy<100:
-            return 1, None
-        #get the interaction length sample
-        if idx<6:#mesons
-            #xs = sigma_meson(energy)
-            xs = sigma_Dice(energy)
-        elif idx>=6:#hadrons
-            #xs = sigma_baryon(energy)
-            xs = sigma_Lice(energy)
-
-        IL = self.MICE/(self.RHO*self.NA*xs)
         cdf_sample = self.rng.random(nsample)
-        #inverse cdf of interaction length distribution
+        #sampled length from the interaction length distribution
         Ix = -1*IL*np.log(1-cdf_sample)
 
-        ###### DEBUG/TEST
-        #Dx=0
-        #Ix=1
-        ######
-
-        if Dx<=Ix: return 1, None
+        #Case : Charm Hadron Decays
+        if Dx<=Ix: return 1, None, Dx
+        #Case : Charm Hadron interactions
         elif Dx>Ix:
-            #in case of interaction, sample the target as well
-            #1: for hydrogen, 2: for Oxygen
-            h2o = np.array([1,1,2])
-            target = self.rng.choice(h2o)
-            if target==1:
-                return 2, 'H'
-            elif target==2:
-                return 2, 'OX'
+            #sample a random atom from the medium composition
+            target = self.rng.choice(self.atom_arr)
+            return 2, target, Ix
 
     def sample_muon(self, idx, energy):
         '''This is a wrapper function that calls for the above
@@ -355,38 +427,29 @@ class CharmMuonGenerator:
                   Muon BR (float)
         '''
         #if charm hadron energy is below 10GeV, do nothing
-        if energy<=10.: 
-            print (f'\rCharm Hadron energy:{energy} below 10GeV, skipping Muon Generation',
+        if energy<=self.EMU_MIN: 
+            print (f'\rCharm Hadron energy:{energy} below {self.EMU_MIN} GeV, skipping Muon Generation',
                     end='\r')
             return None
-        #if energy is below 100GeV, always decay be default
-        elif energy>10. and energy<100.:
-            br = self.decay_BR[idx](np.log10(energy))
-            #if branching ratio is 0 or negative, do nothing
-            if br<=0.0: return None
-            muen = self.sample_decay_fraction(idx,energy)
-            orig = 1
-            ttype = None
-            return (float(muen), orig, ttype, br)
-        else:
-            #decision on decay vs. interaction
-            orig, ttype = self.sample_decay_interaction(idx, energy)
-            if orig==1:
-                muen = self.sample_decay_fraction(idx, energy)
-                br = self.decay_BR[idx](np.log10(energy))
-            elif orig==2:
-                muen = self.sample_interaction_fraction(ttype, idx, energy)
-                br = self.interaction_BR[ttype][idx](np.log10(energy))
-            return (float(muen), orig, ttype, br)
+
+        #decision on decay vs. interaction
+        orig, ttype, length = self.sample_decay_interaction(idx, energy)
+        if orig==1:
+            muen = self.sample_decay_fraction(idx, energy)
+            br = self.decayMuon.brs[PDGNAMES[idx]](np.log10(energy))
+        elif orig==2:
+            muen = self.sample_interaction_fraction(ttype, idx, energy)
+            br = self.interactionDict[ttype].brs[PDGNAMES[idx]](np.log10(energy))
+        return (float(muen), orig, ttype, br, length)
 
     def compute_fractional_xs(self, energy, nutype):
         '''Computes the charm production fractional cross-section
         for the given neutrino energy and neutrino type
         '''
         if nutype == 1:
-            return self.charm_xs[0](np.log10(energy))
+            return self.charm_prodfrac[0](np.log10(energy))
         elif nutype == -1:
-            return self.charm_xs[1](np.log10(energy))
+            return self.charm_prodfrac[1](np.log10(energy))
 
     def inject_muon(self, idx, energy):
         '''Decides if there should be muon as decay product for
@@ -394,14 +457,14 @@ class CharmMuonGenerator:
         2nd,3rd... charm hadrons)
         '''
         if energy<=10.: return False
-        orig, ttype = self.sample_decay_interaction(idx, energy)
+        orig, ttype, length = self.sample_decay_interaction(idx, energy)
         rand = self.rng.random(1)
         if orig==1:
-            br = self.decay_BR[idx](np.log10(energy))
+            br = self.decayMuon.brs[PDGNAMES[idx]](np.log10(energy))
             if rand<=br: return True
             else: return False
         elif orig==2:
-            br = self.interaction_BR[ttype][idx](np.log10(energy))
+            br = self.interactionDict[ttype].brs[PDGNAMES[idx]](np.log10(energy))
             if rand<=br: return True
             else: return False
 
