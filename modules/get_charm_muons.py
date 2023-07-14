@@ -116,7 +116,7 @@ class GenerateEvents(CharmMuonGenerator):
         #add the rest energy as generic hadrons
         charm_quark = get_particle(self.lines[idx+2])
         #first hadron at the primary vertex
-        en1 = charm_quark[1] - charm[1]
+        en1 = charm_quark[1] + CONSTANT['proton_mass']['value'] - charm[1]
         hadron1 = (2, 9999999999, en1, charm_quark[2], charm_quark[3], 0)
         #second hadron at the charm hadron length
         en2 = charm[1] - mu_sample[0]

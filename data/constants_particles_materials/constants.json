@@ -3,9 +3,17 @@
 	"value" : 6.02214076e-4,
 	"unit" : "cm^2/mb/mol"
 	},
+"avogadro_num" : {
+	"value" : 6.02214076e+23,
+	"unit" : "num/mol"
+	},
 "light_speed" : {
 	"value" : 2.99792458e10,
 	"unit" : "cm/s"
 	},
+"proton_mass" : {
+	"value" : 0.938,
+	"unit" : "GeV"},
+"pbTOcm2" : 1e-36,
 "cmTOm" : 0.01
 }
