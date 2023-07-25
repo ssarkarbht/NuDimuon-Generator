@@ -15,5 +15,7 @@
 	"value" : 0.938,
 	"unit" : "GeV"},
 "pbTOcm2" : 1e-36,
+"mbTOcm2" : 1e-27,
+"mbTOpb" : 1e9,
 "cmTOm" : 0.01
 }
