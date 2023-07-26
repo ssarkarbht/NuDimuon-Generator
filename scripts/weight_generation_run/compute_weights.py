@@ -23,7 +23,8 @@ parser.add_option("-o", "--OutputFilename", dest="OFILE", type=str)
 # Other arguments
 #interaction type: 0: standard CC DIS
 # 1: Trident dimuon, 2: charm dimuon, 3: charm hadron
-parser.add_option("-t", "--Interaction", dest="ITYPE", type=int)
+parser.add_option("-t", "--Interaction", dest="ITYPE", type=int,
+        default = 2)
 parser.add_option("-w", "--WeightDictName", dest="WDICT", type=str,
         default="I3MCWeightDict")
 
