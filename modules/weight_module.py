@@ -9,7 +9,7 @@ Description: This script contains the python functions to calculate weight infor
 '''
 
 import numpy as np
-from icecube import icetray, dataio, dataclasse
+from icecube import icetray, dataio, dataclasses
 #import LeptonWeighter as lw
 #import nuSQUIDSpy as nsq
 import scipy.interpolate as ip
@@ -31,7 +31,7 @@ with open(cfile, 'r') as f:
 #get the files containing the cross-section data
 xsdir = data_dir + 'cross_sections/'
 # DIS Cross-sections
-dis_dir = xs_dir + 'dis_cross_section/DAT/'
+dis_dir = xsdir + 'dis_cross_section/DAT/'
 nu_cc_iso = np.loadtxt(dis_dir+'total_nu_CC_iso_NLO_HERAPDF1.5NLO_EIG.dat',
                         skiprows=1)
 nu_nc_iso = np.loadtxt(dis_dir+'total_nu_NC_iso_NLO_HERAPDF1.5NLO_EIG.dat',
@@ -44,7 +44,7 @@ nubar_nc_iso = np.loadtxt(dis_dir+'total_nubar_NC_iso_NLO_HERAPDF1.5NLO_EIG.dat'
 dis_energies = np.linspace(1,12,111)
 
 # Trident Cross-sections
-tri_dir = xs_dir + 'trident_cross_section/'
+tri_dir = xsdir + 'trident_cross_section/'
 #following three are the trident total cross-section data (same for Nu/NuBar)
 chdf_xs=np.loadtxt(tri_dir+'zb_CH+DF.csv',
                     delimiter=',',comments='#')
@@ -105,16 +105,20 @@ def dis_sigma(nuen, nutype, inttype='cc'):
     ''' takes the neutrino energy, nutype= 1 for nu, -1 for nubar
     and inttype='cc' or 'nc'. returns total cross-section in cm^2
     '''
-    if inttype=='cc' and nutype==1:
-        return Nu_CC(nuen)
-    elif inttype=='cc' and nutype==-1:
-        return NuBar_CC(nuen)
-    elif inttype='nc' and nutype==1:
-        return Nu_NC(nuen)
-    elif inttype='nc' and nutype==-1:
-        return NuBar_NC(nuen)
+    xsarr = np.zeros(len(nuen))
+    if inttype=='cc':
+        partid = np.where(nutype==1)[0]
+        antipartid = np.where(nutype==-1)[0]
+        xsarr[partid] = Nu_CC(nuen[partid])
+        xsarr[antipartid] = NuBar_CC(nuen[antipartid])
+    elif inttype=='nc':
+        partid = np.where(nutype==1)[0]
+        antipartid = np.where(nutype==-1)[0]
+        xsarr[partid] = Nu_NC(nuen[partid])
+        xsarr[antipartid] = NuBar_NC(nuen[antipartid])
     else:
         assert False, "Unknown attributes!"
+    return xsarr
 
 NuMu_CHDF = SigmaCalc(chdf_xs[:,0], chdf_xs[:,1],
                     kind='slinear', scale='log_log', unit=None)
@@ -142,7 +146,7 @@ class GenerateWeight(icetray.I3Module):
         icetray.I3Module.__init__(self, context)
         #Parameter for HDF5 filename
         self.AddParameter('LIFile',
-                'Name of the initial Lepton Injector File',)
+                'Name of the initial Lepton Injector File',
                 None)
         self.AddParameter('ConfigFile',
                 'Name of the intial LI config file',
@@ -155,15 +159,19 @@ class GenerateWeight(icetray.I3Module):
                         'File containing Charm Muon Generation Weight',
                         None)
 
+        self.AddParameter('WeightName', #Weight frame object name
+                        'Weight Dictionary object name in the frame',
+                        'I3MCWeightDict')
+
     def Configure(self):
         #Load the event properties from LI File
         li_fname = self.GetParameter('LIFile')
         self.evprops = h5.File(li_fname, 'r')['RangedInjector0']['properties']
-
         #Load the Simulation properties for LIC file
         cfg_fname = self.GetParameter('ConfigFile')
-        self.simprop = lw.RangeSimulationDetails(cfg_fname)
-
+        with open(cfg_fname,'r') as f:
+            propdict = json.load(f)
+        self.simprop = propdict['LeptonInjector']
         #Interaction type
         self.inttype = self.GetParameter('InteractionType')
 
@@ -172,10 +180,34 @@ class GenerateWeight(icetray.I3Module):
         if self.inttype in [2,3]:
             if cname is None:
                 assert False, "CharmFile cannot be None for charm production events."
+            #load the charm muon generation info
             self.charm_factor = h5.File(cname, 'r')['CharmWeights']
+            #initialize the charm weight dictionary keys
+            self.charm_keys = ['CharmHadronPDG', 'CharmHadronEnergy',
+                    'CharmQuarkFraction', 'MuonBR', 'TotalFraction']
 
-        self.iterator = 0
-        self.nevents = self.simprop.events
+        #Initialize the WeightDictionary keys
+        self.dict_keys = ['NEvents', 'Emin', 'Emax', 'ZenithMin', 'ZenithMax',
+                'AzimuthMin', 'AzimuthMax', 'PowerlawIndex', 'InjectionRadius',
+                'EndcapLength', 'PrimaryType', 'PrimaryEnergy', 'PrimaryZenith',
+                'PrimaryAzimuth', 'ColumnDepth', 'TotalCrossection',
+                'GenerationWeight', 'VolumeWeight', 'InteractionWeight',
+                'OneWeight']
+        
+        #Initialize the event independent properties
+        self.const_prop = [float(self.simprop['event_number']),
+                self.simprop['MinEnergy'], self.simprop['MaxEnergy'],
+                self.simprop['MinZenith']*np.pi/180., self.simprop['MaxZenith']*np.pi/180.,
+                self.simprop['MinAzimuth']*np.pi/180., self.simprop['MaxAzimuth']*np.pi/180.,
+                self.simprop['gamma'], self.simprop['injRadius'], self.simprop['endLength']]
+        #Compute the weights for all events and store
+        self.compute_all_weights()
+
+        #Get the frame weight object name
+        self.weightname = self.GetParameter('WeightName')
+
+        #self.iterator = 0
+        #self.nevents = self.simprop.events
 
     #Calculate the generation probability
     def pgen(self,nuen):
@@ -208,210 +240,76 @@ class GenerateWeight(icetray.I3Module):
         return injarea*solidangle
 
     #Calculate the interaction weight within generation volume
-    def interaction_weight(self,nuen,columndepth):
+    def interaction_weight(self,nuen, ptype, columndepth):
         #tridents
         if self.inttype==1:
             self.xs = trident_sigma(nuen) #in cm^2 unit
         #nu cc dis
         elif self.inttype==0:
-            self.xs = dis_sigma(nuen, self.ptype) #in cm^2 unit
+            self.xs = dis_sigma(nuen, ptype) #in cm^2 unit
         #nu cc dis charm muon
         elif self.inttype in [2,3]:
-            self.xs = dis_sigma(nuen, self.ptype)*self.charmfactor['totalXsFraction'] #in cm^2 unit
+            self.xs = dis_sigma(nuen, ptype)*self.charm_factor['totalXsFraction'] #in cm^2 unit
         else:
             assert False, f'Invalide Interaction type set: {self.inttype}'
         
         cd=columndepth * CONSTANT['avogadro_num']['value'] #in #targets/cm^-2 unit
         exp_factor=-1.*self.xs*cd
         val=1-np.exp(exp_factor)
-        if val==0.: #if the exponent is too small and rounding error returns 0
-            return -1.*exp_factor
-        return (1-np.exp(exp_factor))
+        #if the exponent is too small and rounding error returns 0
+        zero_idx = np.where(val==0)[0]
+        val[zero_idx] = -1.*exp_factor[zero_idx]
 
-    #calculate the neutrino propagation weight from atmosphere to the surface of generation volume
-    def propagation_weight(self,nuen,zenith):
-        numu=1
-        units=nsq.Const()
-        nuen=nuen*units.GeV
-        nutype=int(0.5*(1-self.ptype))
-        nu_state = self.nsq_atm.EvalFlavor(numu,np.cos(zenith),nuen,nutype)
-        initial_flux=1.0e18*nuen**(-1.*1)##this spectral index should be the one with nsq comptation
-        #initial_flux=1.0e18*nuen**(-1.*self.index)
-        return nu_state/initial_flux
+        return val
 
-    #Function to process Q frames
+    def compute_all_weights(self):
+        #primary energy array
+        p_en = self.evprops['totalEnergy']
+        #total column depth
+        col = self.evprops['totalColumnDepth']
+        #primary particle type
+        p_type = np.sign(self.evprops['initialType'])
+
+        #compute the weights
+        self.wgen = self.pgen(p_en)
+        self.wvol = self.sim_volume()
+        self.wint = self.interaction_weight(p_en, p_type, col)
+
+        self.onew = self.wint*self.wvol/self.wgen
+        return None
+
+    #Function to process Q frames (storing weights)
     def DAQ(self,frame):
-        #get the event dependent weight parameters
-        eventprop=frame['EventProperties']
-        #get event id to keep track of the weights in HDF5 file
-        evtid=frame['I3EventHeader'].event_id
-        #get primary neutrino pid to keep track of the weights in HDF5 file
-        ppid=frame['I3MCTree'].primaries[0].id.minorID
-        #extra factor for charm muon production
-        if self.inttype==2:
-            #self.charmfactor = frame['CharmMuonFactor'].value
-            self.charmfactor = self.charm_factor[evtid]
-        #get the neutrino/anti-neutrino type
-        nuclass = [dataclasses.I3Particle.NuE,
-                dataclasses.I3Particle.NuMu,
-                dataclasses.I3Particle.NuTau]
-        nubarclass = [dataclasses.I3Particle.NuEBar,
-                dataclasses.I3Particle.NuMuBar, 
-                dataclasses.I3Particle.NuTauBar]
-        if eventprop.initialType in nuclass:
-            self.ptype=1
-        elif eventprop.initialType in nubarclass:
-            self.ptype=-1
-        else:
-            print ("Check for bugs! Or upgrade particle type for weight dictionary")
-        # Calculate generation probability
-        wgen=self.pgen(eventprop.totalEnergy)
-        # Calculate solid angle over which events are simulated
-        wvol=self.sim_volume()
-        # Calculate interaction probablity
-        wint=self.interaction_weight(eventprop.totalEnergy,eventprop.totalColumnDepth)
-        # Calculate propagation probability
-        wprop=self.propagation_weight(eventprop.totalEnergy,eventprop.zenith)
-        # Calculate 'Total Weight' (NuGen jargon)
-        pint=wint*wprop
-        # Calculate OneWeight
-        oneweight=pint*wvol/wgen
-        # Store all the weight parameters in the array container
-        wparam=(evtid, ppid, self.index, self.emin, self.emax, self.injrad, self.zmin, self.zmax,
-                self.amin, self.amax, eventprop.totalEnergy, eventprop.zenith, eventprop.azimuth,
-                self.xs, eventprop.totalColumnDepth, eventprop.impactParameter, wprop, wint, pint, oneweight, 
-                self.nevents, self.ptype)
-        #self.weightarray[evtid]=wparam
-        self.weightarray[self.iterator]=wparam
+        #get the event index to extract all info from arrays
+        event_idx  = frame['I3EventHeader'].event_id
+        #get the event properties
+        event_prop = self.evprops[event_idx]
+        #store the relevant event properties
+        event_param = [float(event_prop['initialType']),
+                event_prop['totalEnergy'], event_prop['zenith'],
+                event_prop['azimuth'], event_prop['totalColumnDepth']]
+        #store the event weights
+        event_weight = [self.xs[event_idx], self.wgen[event_idx],
+                self.wvol, self.wint[event_idx],
+                self.onew[event_idx]]
+        #concatenate all the weight dictionary info
+        wparam = self.const_prop + event_param + event_weight
+        #create the key-value dictionary
+        wdict = dict(zip(self.dict_keys, wparam))
+        wdict_obj = dataclasses.I3MapStringDouble(wdict)
+
+        #store into frame weight object
+        frame.Put(self.weightname,wdict_obj)
+
+        #in case of charm/charm muon production,
+        #additionally store charm weights
+        if self.inttype in [2,3]:
+            wcharm = self.charm_factor[event_idx]
+            charm_dict = dict(zip(self.charm_keys,
+                [float(wcharm['hadronPDG']), wcharm['hadronEnergy'],
+                    wcharm['xsFraction'], wcharm['branchingRatio'],
+                    wcharm['totalXsFraction']]))
+            cdict_obj = dataclasses.I3MapStringDouble(charm_dict)
+            frame.Put('CharmWeightDict', cdict_obj)
         self.PushFrame(frame)
-        self.iterator+=1
 
-
-
-
-
-class WeightAdd(icetray.I3Module):
-	'''
-	This I3Module class takes the hdf5 file containg the weight info and puts it in the I3File's
-	WeightDictionary
-	'''
-	def __init__(self, context):
-		icetray.I3Module.__init__(self, context)
-		self.AddParameter('Filename', #HDF5 filename
-				'Weight Dictionary filename',
-				'nsq_propagation_weight.h5')
-
-		self.AddParameter('Weightname', #Weight Object name
-				'Weight Dictionary object name in the frame',
-				'I3MCWeightDict')
-		self.AddParameter('SkipEvents', #Events to skip weights for
-				'List of event ids to skip',
-				[])
-		self.AddParameter('AddID', #If we want to add event ID object
-				'Whether to Add SimEventID',
-				True)
-		self.AddParameter('MapID',
-				'EventID or PrimaryID for mapping the weight array',
-				'PID')#default is primary id, alternate: EID
-
-	def Configure(self):
-		h5filename = self.GetParameter('Filename')
-		self.weightname = self.GetParameter('Weightname')
-		self.skipevents=self.GetParameter('SkipEvents')
-		self.addid = self.GetParameter('AddID')
-		self.mapid = self.GetParameter('MapID')
-
-		h5file = h5.File(h5filename,'r')
-		self.weight_data = h5file['WeightDictionary']
-		self.keys = ['SpectralIndex', 'Emin', 'Emax', 'InjectionRadius',
-			'ZenithMin', 'ZenithMax', 'AzimuthMin', 'AzimuthMax',
-			'PrimaryEnergy', 'PrimaryZenith', 'PrimaryAzimuth',
-			'TotalCrossection', 'ColumnDepth', 'ImpactParamter','PropagationWeight', 
-			'InteractionWeight', 'TotalWeight', 'OneWeight',
-			'NEvents', 'NuType']
-		#set the idx for pulling weights from dictionary
-		if self.mapid=='PID':
-			pp_ids = self.weight_data['primary_id']
-		elif self.mapid=='EID':
-			pp_ids = self.weight_data['event_id']
-		weight_ids= np.arange(len(pp_ids))
-		self.idx_map = dict(zip(pp_ids,weight_ids))
-#		self.iterator=0
-		#print (self.idx_map.keys())
-		if self.addid: self.id_key = 'SimEventID'
-
-	def DAQ(self, frame):
-#		for i in self.skipevents:
-#			if self.weight_data[self.iterator]['event_id']==i:
-#				self.iterator+=1
-#				print ("Skipping event with Event ID: ", self.weight_data[self.iterator][0])	
-#		evt_weight=self.weight_data[self.iterator]
-		if self.mapid=='PID':
-			evt_weight=self.weight_data[self.idx_map[frame['I3MCTree'].primaries[0].id.minorID]]
-		elif self.mapid=='EID':
-			evt_weight=self.weight_data[self.idx_map[frame['I3EventHeader'].event_id]]
-
-		evt_weight['NEvents'] -= len(self.skipevents)
-
-		wdict=dict(zip(self.keys, evt_weight.tolist()[2:]))
-		wdict_obj=dataclasses.I3MapStringDouble(wdict)
-		frame.Put(self.weightname,wdict_obj)
-
-		evtid = icetray.I3Int(int(evt_weight['event_id']))
-		frame.Put(self.id_key, evtid)
-		self.PushFrame(frame)
-#		self.iterator += 1
-
-class InsertID(icetray.I3Module):
-	'''
-	This I3Module class takes the hdf5 file containg the weight info (initial eventID) and puts it in the I3File's
-	SimEventID object
-	'''
-	def __init__(self, context):
-		icetray.I3Module.__init__(self, context)
-		self.AddParameter('Filename', #HDF5 filename
-				'Weight Dictionary filename')
-
-	def Configure(self):
-		h5filename = self.GetParameter('Filename')
-		h5file = h5.File(h5filename,'r')
-		self.weight_data = h5file['WeightDictionary']
-		self.key = 'SimEventID'
-		pp_ids = self.weight_data['primary_id']
-		ev_ids = self.weight_data['event_id']
-		self.idx_map = dict(zip(pp_ids,ev_ids))
-
-	def DAQ(self, frame):
-		evt_id=int(self.idx_map[frame['I3MCTree'].primaries[0].id.minorID])
-		evtid = icetray.I3Int(evt_id)
-		frame.Put(self.key, evtid)
-		self.PushFrame(frame)
-
-
-class Update_ID(icetray.I3Module):
-	''' This class takes the weight hdf5 and updates the primary particle minor id
-	motivation: for tridents, particle ids change when we create new mctree after
-	calchep/madgraph event generation. where as the weight info is mainly constructed
-	from lepton injector file that contains old mctree with different pids. so we
-	need to update the ids in the weight dictionary for later precessing/analysis.
-	'''
-	def __init__(self, context):
-		icetray.I3Module.__init__(self, context)
-		self.AddParameter("HDF5Filename", "Name of HDF5 file containing Weight Dictionary",
-				"sample.h5")
-	def Configure(self):
-		h5filename = self.GetParameter('HDF5Filename')
-		self.h5file = h5.File(h5filename, 'a')
-		evtid = self.h5file['WeightDictionary']['event_id']
-		weight_idx = np.arange(len(evtid))
-		self.idxmap = dict(zip(evtid,weight_idx))
-		self.iterator = 0
-	def DAQ(self, frame):
-		pid = frame['I3MCTree'].primaries[0].id.minorID
-		eid = frame['I3EventHeader'].event_id
-		arr = self.h5file['WeightDictionary'][self.idxmap[eid]]
-		arr['primary_id'] = pid
-		self.h5file['WeightDictionary'][self.idxmap[eid]] = arr
-		self.PushFrame(frame)
-		self.iterator += 1
-		if self.iterator==len(self.idxmap.keys()): self.h5file.close()
