@@ -12,13 +12,23 @@ Description: This module takes the hdf5 file containing
 
 import numpy as np
 import h5py as h5
-import sys, os
+import sys, os, json
 try:
     from icecube import icetray, dataio, dataclasses
     from I3Tray import *
 except:
     print ("IceTray environment not loaded.")
     sys.exit(1)
+
+#Load the constant dictionary
+#define the directory paths
+repo_dir = os.environ["DIMUON_REPO"]
+data_dir = repo_dir + "/data/"
+
+#load the constants
+cfile = data_dir + "constants_particles_materials/constants.json"
+with open(cfile, 'r') as f:
+    CONSTANT = json.load(f)
 
 #Construct the rotation metrices
 # theta rotation around x-axis
@@ -142,20 +152,25 @@ class H5I3Converter(icetray.I3Module):
             # get the updated particle direction
             new_theta = particle.dir.theta
             new_phi   = particle.dir.phi
-            # Compute the positional offset from the primary vertex
+            # Compute the positional (+time) offset from the primary vertex
             offx = 0.0
             offy = 0.0
             offz = 0.0
+            offt = 0.0
             if p['dist']!=0:
                 offx = p['dist']*np.sin(new_theta)*np.cos(new_phi)
                 offy = p['dist']*np.sin(new_theta)*np.sin(new_phi)
                 offz = p['dist']*np.cos(new_theta)
+                offt = (p['dist'] * icetray.I3Units.s
+                        /CONSTANT['light_speed']['value']
+                        /icetray.I3Units.cm)
+
             #update the particle position
             particle.pos = dataclasses.I3Position(pos_x+offx,
                     pos_y+offy, pos_z+offz)
 
-            particle.energy = p['energy']*icetray.I3Units.GeV
-            particle.time = 0.0*icetray.I3Units.ns
+            particle.energy = p['energy'] * icetray.I3Units.GeV
+            particle.time = offt * icetray.I3Units.ns
             particle.length = float('Nan')
 
             if p['ptype']==1:
