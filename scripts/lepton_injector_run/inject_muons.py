@@ -62,8 +62,19 @@ controller  = LI.Controller( the_injector, minE, maxE, gamma, minAzimuth, maxAzi
 path_to = lconfig['earth_model']
 controller.SetEarthModel("Planet", path_to)
 
-outfile = lconfig['out_folder']+str(lconfig['random_seed']) + '_' + lconfig['out_filename']
-licfile = lconfig['out_folder']+str(lconfig['random_seed']) + '_' + lconfig['lw_filename']
+#check if the output folder is defined in config file
+outdir = lconfig['out_folder']
+if outdir is None:
+    #update the directory based on currect working directory location
+    try:
+        outdir = os.environ["WORKDIR"]
+    except:
+        assert False, "There's no output directory defined"
+#add a slash at the end if not present
+if outdir[-1]!='/': outdir += '/'
+
+outfile = outdir + str(lconfig['random_seed']) + '_' + lconfig['out_filename']
+licfile = outdir + str(lconfig['random_seed']) + '_' + lconfig['lw_filename']
 controller.NameOutfile(outfile)
 controller.NameLicFile(licfile)
 controller.setSeed(lconfig['random_seed'])
