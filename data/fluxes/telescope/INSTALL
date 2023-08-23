@@ -1,0 +1,5 @@
+#Neutrino flux models usable by neutrino telescopes (IceCube. P-ONE, KM3Net) using various flux softwares at the atmosphere (nuflux, daemonflux) and earth propagation calculation by nuSQuIDS can generate a final flux file that is more than 100MB in size, which is not ideal for storing directly in GitHub repo.
+
+#Here's the example scripts on how to generate those flux models using the singularity container provided with this repository.
+
+
