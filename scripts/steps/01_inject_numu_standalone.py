@@ -27,7 +27,10 @@ with open(cfile) as f:
     config = json.load(f)
 
 #get the generation details
-econfig = config['Standalone']
+if config['Experiment']=='telescope':
+    econfig = config['LeptonInjector']
+elif config['Experiment']=='lhc':
+    econfig = config['Standalone']
 
 #set up the random seed details
 randomGen = np.random.default_rng(econfig['random_seed'])
@@ -58,11 +61,11 @@ elif len(econfig['nu_pdg'])==2:#if half-half (anti)neutrino
 #create the output h5 file
 h5f = h5.File(econfig['out_filename'], "w")
 data_arr = np.zeros(econfig['event_number'],
-        dtype = [('event_id', int),
-            ('nu_pdg', int), ('nu_energy', float)])
-data_arr['event_id'] = event_idx
-data_arr['nu_pdg'] = event_pdg
-data_arr['nu_energy'] = event_energy
+        dtype = [('EventID', int),
+            ('ParticleType', int), ('Energy', float)])
+data_arr['EventID'] = event_idx
+data_arr['ParticleType'] = event_pdg
+data_arr['Energy'] = event_energy
 
 h5f.create_dataset('InitialType', data=data_arr)
 h5f.close()

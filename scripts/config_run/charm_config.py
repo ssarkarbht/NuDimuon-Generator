@@ -24,51 +24,59 @@ parser.add_argument("-c", "--config", dest="cfg",
         help="Which json config file did you use to produce the event file?")
 
 args = parser.parse_args()
+#load the input file
 filename = args.file
+hf = h5.File(filename, "r")
+
+#load the config info
 cfile = args.cfg
 with open(cfile) as f:
     config = json.load(f)
-seed = config['LeptonInjector']['random_seed']
 
-#get the event information object
-f = h5.File(filename, "r")
-evlist = f["RangedInjector0"]
+#get the generation details
+if config['Experiment']=='telescope':
+    econfig = config['LeptonInjector']
+    #get the event information object
+    evlist = hf["RangedInjector0"]["initial"]
 
+elif config['Experiment']=='lhc':
+    econfig = config['Standalone']
+    evlist = hf["InitialType"]
+
+seed = econfig['random_seed']
 #get the total number of events generated
-evtnum = len(evlist['initial'])
+evtnum = len(evlist)
+#create unique event IDs
+evt_ids = np.arange(evtnum)
+#get the primary neutrino energy
+evt_ens = evlist['Energy']
+#get the primary neutrino pdg id
+evt_pdg = evlist['ParticleType']
 
 #creat a blank array 
 data_arr = np.zeros(evtnum, dtype = [('event_id', int), ('nu_pdg', int),
     ('nu_energy', float), ('target', int)])
 
-#create unique event IDs
-evt_ids = np.arange(evtnum)
-#get the primary neutrino energy
-evt_ens = evlist['initial']['Energy']
-#get the primary neutrino pdg id
-evt_pdg = evlist['properties']['initialType']
-
 #generate random target nucleons for pythia settings
 np_rng = default_rng(seed)
 sampler = gn.generator(np_rng)
 evt_tgt = sampler.sample_nucleus(n=evtnum)
-f.close()
+hf.close()
 
 data_arr['event_id'] = evt_ids
 data_arr['nu_pdg'] = evt_pdg
 data_arr['nu_energy'] = evt_ens
 data_arr['target'] = evt_tgt
 
-f = h5.File(filename,'a')
-g = f['RangedInjector0']
+hf = h5.File(filename,'a')
 try:
-    del g['PythiaTarget']
+    del hf['PythiaTarget']
     print ("Will overwrite existing 'PythiaTarget' object.")
 except:
     print ("Will be writing sampled target configuration into 'PythiaTarget'")
 
-d = g.create_dataset('PythiaTarget', data=data_arr)
-f.close()
+d = hf.create_dataset('PythiaTarget', data=data_arr)
+hf.close()
 
 #Also create a separate text file for passing to Pythia+DIRE script
 outfile = str(seed)+"_charmConfig.txt"
