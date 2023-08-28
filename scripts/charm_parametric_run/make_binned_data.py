@@ -89,7 +89,8 @@ def make_histo(arr, energy, bins):
 #check if the sim type has the proper name
 assert options.SIM in ['decay', 'interaction'], "Simulation type not decay or interaction!"
 #parent directory
-datadir = options.DIR + "/" + options.SIM + "/"
+#datadir = options.DIR + "/" + options.SIM + "/"
+datadir = options.DIR + "/"
 
 #initiate empty disctionary of arrays for output
 hist_dict = {}
