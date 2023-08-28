@@ -19,9 +19,12 @@ import h5py as h5
 #add command-line arguments
 parser = OptionParser()
 
-parser.add_option("-t", "--Target", dest="TGT", type=str)
+parser.add_option("-t", "--Target", dest="TGT", type=str,
+                default=None)
 parser.add_option("-d", "--DataFolder", dest="DIR", type=str)
 parser.add_option("-s", "--SimulationType", dest="SIM", type=str)
+parser.add_option("-e", "--MinMuEnergy", dest="EMUMIN", type=float)
+
 parser.add_option("-m", "--MinEnergy", dest="EMIN", type=float)
 parser.add_option("-u", "--MaxEnergy", dest="EMAX", type=float)
 parser.add_option("-n", "--BinNumber", dest="NBIN", type=int)
@@ -58,7 +61,7 @@ def make_histo(arr, energy, bins):
         energy (float): Charm hadron energy point
         bins (dict): three bins for histogramming
     '''
-    mue_thr = options.EMIN/energy
+    mue_thr = options.EMUMIN/energy
     #get the index for non-zero muon production
     idxs = np.where(arr['pdgid']!=0)[0]
     #get the index for above threshold muon production
@@ -100,7 +103,7 @@ metadata = np.array(['EnergyPoints : Parent hadron energies used for simulation'
 # fractional energy bins 
 # (log-scale for interaction, lin-scale for decay)
 if options.SIM == 'interaction':
-    minfrac = np.log10(1/options.EMAX) #assuming lowest possible bins @1GeV Muons
+    minfrac = np.log10(1./options.EMAX) #assuming lowest possible bins @1GeV Muons
     fbins = np.logspace(minfrac, 0., options.NBIN+1)
 elif options.SIM == 'decay':
     fbins = np.linspace(0., 1., options.NBIN+1)
@@ -141,8 +144,9 @@ for particle in names:
 
     eninfo = data['energy']
     #build the charm hadron energy array
-    #energies = np.logspace(eninfo[0], eninfo[1], eninfo[2])
-    energies = np.logspace(np.log10(eninfo[0]), 8, int(eninfo[2]))
+    energies = np.logspace(np.log10(eninfo[0]), 
+                        np.log10(eninfo[1]),
+                        int(eninfo[2]))
 
     #initialize empty arrays
     farr = np.zeros((len(energies)+1, len(fbincen)))
