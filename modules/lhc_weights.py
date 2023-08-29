@@ -195,8 +195,7 @@ class LHCWeight:
         if len(self.config['nu_pdg'])==2:
             event_num *= 0.5
         
-        return int_prob
-        #return int_prob/(gen_prob * event_num)
+        return int_prob/(gen_prob * event_num)
 
 
 class FluxCalc:

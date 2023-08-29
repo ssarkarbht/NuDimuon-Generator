@@ -66,7 +66,8 @@ class CharmSigma:
     def __init__(self, x,y):
         logx = np.log10(x)
         logy = np.log10(y)
-        self.func = ip.interp1d(logx, logy, kind='slinear')
+        self.func = ip.interp1d(logx, logy, kind='slinear',
+                bounds_error=False, fill_value='extrapolate')
     def __call__(self, energy):
         return 10**(self.func(np.log10(energy)))
 

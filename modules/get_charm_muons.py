@@ -33,13 +33,14 @@ class GenerateEvents(CharmMuonGenerator):
                 seed, target=medium, mu_emin=ethreshold)
 
         # initialize the output file data structure
-        self.hfile = h5.File(outfile, 'a')
-        #if the file contains stuff, overwrite
-        try:
-            self.hgroup = self.hfile.create_group('EventParticleList')
-        except:
-            del self.hfile['EventParticleList']
-            self.hgroup = self.hfile.create_group('EventParticleList')
+        if outfile is not None:
+            self.hfile = h5.File(outfile, 'a')
+            #if the file contains stuff, overwrite
+            try:
+                self.hgroup = self.hfile.create_group('EventParticleList')
+            except:
+                del self.hfile['EventParticleList']
+                self.hgroup = self.hfile.create_group('EventParticleList')
 
         # load the input event file data
         f = open(infile, 'r')
