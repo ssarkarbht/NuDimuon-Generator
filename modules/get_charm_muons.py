@@ -28,10 +28,12 @@ class GenerateEvents(CharmMuonGenerator):
     hadrons.
     '''
     def __init__(self, infile, outfile, paramdir, xsfile,
-            seed, medium, ethreshold):
+            seed, medium, ethreshold, hadron_interaction=True):
         super().__init__(paramdir, xsfile,
                 seed, target=medium, mu_emin=ethreshold)
 
+        #get the switch for turning hadronic interaction on/off
+        self.hadron_interaction = hadron_interaction
         # initialize the output file data structure
         if outfile is not None:
             self.hfile = h5.File(outfile, 'a')
@@ -94,7 +96,8 @@ class GenerateEvents(CharmMuonGenerator):
         #get the charm hadron
         charm = get_particle(self.lines[idx+3+offset])
         #generate a muon
-        mu_sample = super().sample_muon(charm[0], charm[1])
+        mu_sample = super().sample_muon(charm[0], charm[1],
+                            interaction=self.hadron_interaction)
         if mu_sample is None: return None, None
 
         #build the final particle list
@@ -163,7 +166,8 @@ class GenerateEvents(CharmMuonGenerator):
             new_charm = get_particle(self.lines[idx+3+k])
             #check if we need to generate a muon for this charm hadron
             if super().inject_muon(new_charm[0], new_charm[1]):
-                new_mu_sample = super().sample_muon(new_charm[0], new_charm[1])
+                new_mu_sample = super().sample_muon(new_charm[0], new_charm[1],
+                                            interaction=self.hadron_interaction)
                 if new_mu_sample is not None:
                     new_mu = (2, 13, new_mu_sample[0], new_charm[2],
                             new_charm[3], new_mu_sample[4])

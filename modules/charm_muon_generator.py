@@ -382,11 +382,15 @@ class CharmMuonGenerator:
 
         return (DL, IL)
 
-    def sample_decay_interaction(self, idx, energy, nsample=1):
+    def sample_decay_interaction(self, idx, energy, nsample=1,
+            interaction=True):
         ''' Samples the fate of the Charm hadrons between
         decay and interaction in Ice.
         Input: idx (int) : Charm Hadron PDG CODE
                energy (float) : Energy of the Charm hadron
+               nsample (int) : Sample size
+               interaction (bool, optional) : Whether to turn off muon sampling
+                   from charm hadron interaction in the medium. Default is True.
         Returns: Interaction Type (int): 1 for decay, 2 for interaction
                  Target Type (str): None for decay, atom name for interaction
                  Length (float): Decay or Interaction length
@@ -401,6 +405,9 @@ class CharmMuonGenerator:
         cdf_sample = self.rng.random(nsample)
         #sampled length from the decay length distribution
         Dx = -1*DL*np.log(1-cdf_sample)
+        #If interaction is turned off, always return decay
+        if not(interaction):
+            return 1, None, Dx
         
         cdf_sample = self.rng.random(nsample)
         #sampled length from the interaction length distribution
@@ -414,7 +421,7 @@ class CharmMuonGenerator:
             target = self.rng.choice(self.atom_arr)
             return 2, target, Ix
 
-    def sample_muon(self, idx, energy):
+    def sample_muon(self, idx, energy, interaction=True):
         '''This is a wrapper function that calls for the above
         sample functions to get secondary muon energy and other
         interaction info. (decay/interaction, target_type,
@@ -422,6 +429,8 @@ class CharmMuonGenerator:
 
         Input : idx (int) : charm hadron identifier
                 energy (float) :  charm hadron energy
+                interaction (bool, optional) : Switch to turn on/off
+                    muon sampling from hadronic interaction. Default is ON
         Returns : Muon energy (float)
                   Origin (int): 1:Decay, 2:Interaction
                   Target Type (str): 'OX':2, 'H':1, decay: None
@@ -434,7 +443,8 @@ class CharmMuonGenerator:
             return None
 
         #decision on decay vs. interaction
-        orig, ttype, length = self.sample_decay_interaction(idx, energy)
+        orig, ttype, length = self.sample_decay_interaction(idx, energy, 
+                                    interaction=interaction)
         if orig==1:
             muen = self.sample_decay_fraction(idx, energy)
             br = self.decayMuon.brs[PDGNAMES[idx]](np.log10(energy))
