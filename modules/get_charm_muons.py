@@ -241,11 +241,15 @@ if __name__=='__main__':
     parser.add_option("-m", "--TargetMedium", dest="MED", type=str)
     parser.add_option("-t", "--MuThreshold", dest="THR", type=float,
             default=1e1)
+    parser.add_option("-f", "--InteractionFlag", dest="CHINT",
+            action="store_false", default=True)
 
     (options,args) = parser.parse_args()
 
     gen_ev = GenerateEvents(options.IFILE, options.OFILE,
                         options.PDIR, options.CROSS, options.SEED,
-                        options.MED, options.THR)
+                        options.MED, options.THR,
+                        hadron_interaction=options.CHINT)
+
     gen_ev.run_generator()
     #Done.

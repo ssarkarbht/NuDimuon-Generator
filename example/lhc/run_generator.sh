@@ -23,17 +23,21 @@ cp $DIMUON_REPO/example/standalone/* .
 cp $config_dir/$gconfig .
 
 #Start the runs
+
+#[[STEP - 1]]
 #Neutrino energy sampling
 python3 01_inject_numu_standalone.py -c $gconfig
 wait
 
+#[[STEP - 2]]
 #Charm configuration sampling
 python3 02_charm_config.py -f 01_std.h5 -c $gconfig
 wait
 
+#[[STEP - 3]]
 #Pythia run for charm hadron production
 #get the output filename from config file
-fvalue=$(jq '.Standalone.out03_filename' "$gconfig")
+fvalue=$(jq '.Settings.out03_filename' "$gconfig")
 fvalue="${fvalue#\"}"
 fvalue="${fvalue%\"}"
 
@@ -42,12 +46,38 @@ wait
 ./dire08 nu_ccdis.cmnd 02_cnf.txt $fvalue
 wait
 
+
+#[[STEP - 4]]
+#Charm muon sampling from parametric tables
+pyscript=$DIMUON_REPO/modules/get_charm_muons.py
+#get the output filename from config file
+ovalue=$(jq '.Settings.out04_filename' "$gconfig")
+ovalue="${ovalue#\"}"
+ovalue="${ovalue%\"}"
+
+#get the parametric table directory
+pvalue=$(jq '.CharmMuonSettings.ParamDir' "$gconfig")
+pvalue="${pvalue#\"}"
+pvalue="${pvalue%\"}"
+
+#get the muon energy threshold
+ethr=$(jq '.CharmMuonSettings.MuEThreshold' "$gconfig")
+#get the random seed
+seed=$(jq '.Settings.random_seed' "$gconfig")
+#get the target medium
+medval=$(jq '.Medium' "$gconfig")
+medval="${medval#\"}"
+medval="${medval%\"}"
+
+python3 $pyscript -i $fvalue -o $ovalue -s $seed -p $pavlue -m $medval -t $ethr -f
+
+
 #Transfer the final output
 outdir=$(jq '.OutputDir' "$gconfig")
 outdir="${outdir#\"}"
 outdir="${outdir%\"}"
 
-mv $fvalue $outdir/$fvalue
+mv $ovalue $outdir/$ovalue
 
 echo "Done."
 
