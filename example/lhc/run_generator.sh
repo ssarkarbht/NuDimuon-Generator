@@ -80,7 +80,7 @@ medval=$(jq '.Medium' "$gconfig")
 medval="${medval#\"}"
 medval="${medval%\"}"
 
-python3 $pyscript -i $fvalue -o $ovalue -s $seed -p $pavlue -m $medval -t $ethr -f
+python3 $pyscript -i $fvalue -o $ovalue -s $seed -p $DIMUON_REPO/$pvalue -m $medval -t $ethr -f
 wait
 
 #Transfer the final output

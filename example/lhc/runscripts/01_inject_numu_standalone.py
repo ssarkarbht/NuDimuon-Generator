@@ -30,7 +30,7 @@ with open(cfile) as f:
 if config['Experiment']=='telescope':
     econfig = config['LeptonInjector']
 elif config['Experiment']=='lhc':
-    econfig = config['Standalone']
+    econfig = config['Settings']
 
 #set up the random seed details
 randomGen = np.random.default_rng(econfig['random_seed'])
