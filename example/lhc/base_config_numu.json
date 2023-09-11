@@ -1,7 +1,8 @@
 {
 "Experiment" : "lhc",
+"ParentDir" : "/data/icecube/ssarkar/dimuon_generator/rawdata/lhc_run/workdir",
 "WorkDir" : null,
-"OutputDir" : "/data/icecube/ssarkar/dimuon_generator/rawdata/gen_standalone/dataio/charm_hadron_files",
+"OutputDir" : "/data/icecube/ssarkar/dimuon_generator/rawdata/lhc_run/dataio/charm_muon_files",
 "OutfileFormat" : null,
 "Medium" : "tungsten",
 "InteractionProcess" : "CharmDimuon",

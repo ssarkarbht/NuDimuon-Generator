@@ -4,23 +4,24 @@
 cd /data/icecube/ssarkar/dimuon_generator/repo/NuDimuon-Generator
 source setup.sh
 
-#get the json config file and define full path for unambiguity
+#get the json config file
 gconfig=$1
-dir_io=$2
-cd $dir_io
-curr_dir=$(echo `pwd`)
+
+#get the parent directory to start working
+dir_io=$(jq '.ParentDir' "$gconfig")
+dir_io="${dir_io#\"}"
+dir_io="${dir_io%\"}"
 
 #get the working directory name (not abosolute path)
-config_dir=/data/icecube/ssarkar/dimuon_generator/rawdata/gen_standalone/config_batches
-dirname=$(get_workdir $config_dir/$gconfig)
-mkdir -p $curr_dir/$dirname
+dirname=$(get_workdir $gconfig)
+mkdir -p $dir_io/$dirname
 
-cd $curr_dir/$dirname
+cd $dir_io/$dirname
 
 #copy the scripts (in the runscripts directory)
 cp $DIMUON_REPO/example/lhc/runscripts/* .
 #copy the config file
-cp $config_dir/$gconfig .
+cp $gconfig .
 
 #Start the runs
 #[[STEP - 1]]
@@ -89,6 +90,11 @@ outdir="${outdir#\"}"
 outdir="${outdir%\"}"
 
 mv $ovalue $outdir/$ovalue
+
+#Clean the directory scripts copies
+shopt -s extglob
+rm !(*.txt|*.h5)
+
 
 echo "Done."
 
