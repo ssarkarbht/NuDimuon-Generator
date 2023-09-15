@@ -8,7 +8,6 @@
 "InteractionProcess" : "CharmDimuon",
 "PDFSets" : null,
 "LogfileName" : null,
-"LeptonInjector" : null,
 "Settings" : {
         "random_seed" : 100000,
         "nu_pdg" : [14],
@@ -21,6 +20,13 @@
 	"out02_filename" : "02_cnf.txt",
 	"out03_filename" : "03_charm.txt",
 	"out04_filename" : "04_dimuon.h5"
+},
+"LeptonInjector" : {
+	"EarthModelDir" : null,
+	"CrossSectionDir" : null,
+	"InjectionRadius" : 1200,
+	"EndcapLength" : 800,
+	"LICFilename" : null
 },
 "CharmMuonSettings" : {
 	"ParamDir" : "data/charm_data/muon_tables/1GEV_Threshold",
