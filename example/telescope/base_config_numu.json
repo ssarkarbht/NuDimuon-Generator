@@ -4,7 +4,7 @@
 "WorkDir" : null,
 "OutputDir" : "/data/icecube/ssarkar/dimuon_generator/rawdata/lhc_run/dataio/charm_muon_files",
 "OutfileFormat" : null,
-"Medium" : "tungsten",
+"Medium" : "ice",
 "InteractionProcess" : "CharmDimuon",
 "PDFSets" : null,
 "LogfileName" : null,
@@ -12,8 +12,8 @@
         "random_seed" : 100000,
         "nu_pdg" : [14],
         "event_number" : 20000,
-        "MinEnergy" : 10.0,
-        "MaxEnergy" : 6000.0,
+        "MinEnergy" : 100.0,
+        "MaxEnergy" : 1000000.0,
         "gamma"     : 2.0,
         "out_folder" : null,
         "out01_filename" : "01_std.h5",
@@ -29,10 +29,10 @@
 	"LICFilename" : null
 },
 "CharmMuonSettings" : {
-	"ParamDir" : "data/charm_data/muon_tables/1GEV_Threshold",
+	"ParamDir" : "data/charm_data/muon_tables/10GEV_Threshold",
 	"XSDir" : null,
-	"MuEThreshold" : 1.0,
-	"CharmHadronInteraction" : false
+	"MuEThreshold" : 10.0,
+	"CharmHadronInteraction" : true
 }
 }
 
