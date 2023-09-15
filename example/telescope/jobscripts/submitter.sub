@@ -1,0 +1,21 @@
+Executable = /data/icecube/ssarkar/dimuon_generator/rawdata/gen_standalone/scripts/run_generator.sh
+
+log = main.log
+output = $(name).out
+error = $(name).err
+
++SingularityImage = "/data2/icecube/ssarkar/test_singularity/nudimuon-generator_v1.0.sif"
+requirements = HasSingularity
+
+Universe = vanilla
+Notification = never
+request_memory = 4GB
+request_disk = 1024MB
+request_cpus = 1
+
+Arguments = $(args)
+
++TransferOutput=""
+
+queue
+

@@ -1,0 +1,86 @@
+##### Main run settings -------------------------------------------
+
+#whether to print run details
+Print:quiet   = on
+
+#How many events to simulate
+Main:numberOfEvents           = 100000
+
+#Print the number of events simulated after evenry count number
+#Next:numberCount              = 10000
+
+##### Beam parameters settings -----------------------------------
+#pdg of the beam A (nue=12, numu=14, nutau=16)
+Beams:idA            = 14
+#pdg of the beam B (proton=2212, neutron=2112)
+Beams:idB            = 2112
+
+#beam configuration type (2 for back-to-back settings)
+Beams:frameType      = 2
+
+#beam energy configuration
+Beams:eA     = 100.000000
+Beams:eB             = 0.0
+
+#random number settings to be implemented later------------------
+
+Random:setSeed   = on
+Random:seed      = 0
+##### PDF settings ----------------------------------------------
+
+#whether to use multiple pdfs (for hard process and MPI, ISR, FSR)
+#pdf set for the beam pdf (mpi, idr, fsr) (lo pdfsets recommended)
+PDF:pSet            = LHAPDF6:CT14lo
+#flag to turn on separate pdf for the hard process (nlo pdfsets can be used)
+PDF:useHard         = on
+PDF:pHardSet        = LHAPDF6:CT18ANLO
+
+#set the neutrino beam pdf to off
+PDF:lepton          = off
+
+##### Interaction Process --------------------------------------
+
+#Standard CC interaction
+WeakBosonExchange:ff2ff(t:W)        = on
+#Standard NC interaction
+#WeakBosonExchange:ff2ff(t:gmZ)      = on
+
+
+
+##### DIRE Settings --------------------------------------------
+
+ShowerPDF:usePDFalphas     = on
+ShowerPDF:useSummedPDF     = on
+ShowerPDF:usePDFmasses     = on
+DireSpace:forceMassiveMap  = on
+
+
+##### Shower phasespace cut-off (set no cutoff) ---------------
+
+phaseSpace:mHatMin         = 0.0
+phaseSpace:pTHatMin        = 0.0
+
+##### Time and Space Shower settings -------------------------
+
+SpaceShower:alphaSvalue    = 0.118
+TimeShower:alphaSvalue     = 0.118
+
+
+##### Beam dependent interaction settings --------------------
+
+#switch off multiparton interaction (neutrino-proton is not in beams)
+PartonLevel:MPI            = off
+BeamRemnants:primordialKT  = off
+
+##### Particle Decays ------------------------------------------
+
+#turn off charm hadron decays
+411:mayDecay  = false
+421:mayDecay  = false
+431:mayDecay  = false
+4122:mayDecay = false
+4132:mayDecay = false
+4232:mayDecay = false
+4332:mayDecay = false
+15:mayDecay   = false
+
