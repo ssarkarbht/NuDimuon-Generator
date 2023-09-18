@@ -19,21 +19,23 @@ mkdir -p $dir_io/$dirname
 cd $dir_io/$dirname
 
 #copy the scripts (in the runscripts directory)
-cp $DIMUON_REPO/example/lhc/runscripts/* .
+cp $DIMUON_REPO/example/telescope/runscripts/* .
 #copy the config file
 cp $gconfig .
 
-#Start the runs
-#[[STEP - 1]]
-#Neutrino energy sampling
-python3 01_inject_numu_standalone.py -c $gconfig
+#Start the Lepton Injector runs
+#[[STEP - 1.1]]
+#Neutrino energy and cylindrical geometry sampling
+python3 01_inject_numu_li.py -c $gconfig
 wait
 
-#[[STEP - 2]]
-#get the output filename of the previous step
+#[[STEP - 1.2]]
+#fix the primary pdg code in the LI file
 fvalue=$(jq '.Settings.out01_filename' "$gconfig")
 fvalue="${fvalue#\"}"
 fvalue="${fvalue%\"}"
+
+python3 01_fix_primary.py
 
 #Charm configuration sampling
 python3 02_charm_config.py -f $fvalue -c $gconfig

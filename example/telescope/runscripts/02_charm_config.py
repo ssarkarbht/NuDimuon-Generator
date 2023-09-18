@@ -34,13 +34,11 @@ with open(cfile) as f:
     config = json.load(f)
 
 #get the generation details
+econfig = config['Settings']
+#get the event information object
 if config['Experiment']=='telescope':
-    econfig = config['LeptonInjector']
-    #get the event information object
     evlist = hf["RangedInjector0"]["initial"]
-
 elif config['Experiment']=='lhc':
-    econfig = config['Standalone']
     evlist = hf["InitialType"]
 
 seed = econfig['random_seed']
@@ -80,7 +78,7 @@ hf.close()
 
 #Also create a separate text file for passing to Pythia+DIRE script
 #outfile = str(seed)+"_charmConfig.txt"
-outfile = config["Standalone"]["out02_filename"]
+outfile = config["Settings"]["out02_filename"]
 
 np.savetxt(outfile, data_arr, fmt='%d, %d, %.8e, %d', delimiter=',')
 

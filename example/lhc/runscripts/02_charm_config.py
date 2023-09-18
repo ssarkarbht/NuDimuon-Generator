@@ -40,7 +40,7 @@ if config['Experiment']=='telescope':
     evlist = hf["RangedInjector0"]["initial"]
 
 elif config['Experiment']=='lhc':
-    econfig = config['Standalone']
+    econfig = config['Settings']
     evlist = hf["InitialType"]
 
 seed = econfig['random_seed']
@@ -80,7 +80,7 @@ hf.close()
 
 #Also create a separate text file for passing to Pythia+DIRE script
 #outfile = str(seed)+"_charmConfig.txt"
-outfile = config["Standalone"]["out02_filename"]
+outfile = config["Settings"]["out02_filename"]
 
 np.savetxt(outfile, data_arr, fmt='%d, %d, %.8e, %d', delimiter=',')
 

@@ -159,7 +159,8 @@ def br_interpolation(data):
     x = data[:,0]
     y = data[:,1]/data[:,2]
     logx = np.log10(x)
-    func = ip.interp1d(logx, y, kind='slinear')
+    func = ip.interp1d(logx, y, kind='slinear',
+            bounds_error=False, fill_value='extrapolate')
     return func
 
 class CharmMuon:
