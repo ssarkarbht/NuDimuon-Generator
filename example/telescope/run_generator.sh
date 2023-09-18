@@ -37,6 +37,7 @@ fvalue="${fvalue%\"}"
 
 python3 01_fix_primary.py
 
+#[[STEP - 2]]
 #Charm configuration sampling
 python3 02_charm_config.py -f $fvalue -c $gconfig
 wait
@@ -83,7 +84,7 @@ medval=$(jq '.Medium' "$gconfig")
 medval="${medval#\"}"
 medval="${medval%\"}"
 
-python3 $pyscript -i $fvalue -o $ovalue -s $seed -p $DIMUON_REPO/$pvalue -m $medval -t $ethr -f
+python3 $pyscript -i $fvalue -o $ovalue -s $seed -p $DIMUON_REPO/$pvalue -m $medval -t $ethr
 wait
 
 #Transfer the final output

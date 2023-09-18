@@ -59,22 +59,25 @@ minAzimuth  = lconfig['MinAzimuth']*rad
 maxAzimuth  = lconfig['MaxAzimuth']*rad
 
 # construct the controller
-controller  = LI.Controller( the_injector, minE, maxE, gamma, minAzimuth, maxAzimuth, minZenith, maxZenith)
+controller  = LI.Controller( the_injector, minE, maxE, gamma, 
+        minAzimuth, maxAzimuth, minZenith, maxZenith,
+        lconfig["InjectionRadius"], lconfig['EndcapLength'])
 
 # specify the output, earth model
 path_to = lconfig['EarthModelDir']
 controller.SetEarthModel("Planet", path_to)
 
 #check if the output folder is defined in config file
-outdir = lconfig['out_folder']
+outdir = sconfig['out_folder']
 if outdir is None:
     #update the directory based on currect working directory location
     outdir = ""
-#add a slash at the end if not present
-if outdir[-1]!='/': outdir += '/'
+else:
+    #add a slash at the end if not present
+    if outdir[-1]!='/': outdir += '/'
 
 outfile = outdir + sconfig['out01_filename']
-licfile = outdir + str(sconfig['random_seed']) + '_' + lconfig['lw_filename']
+licfile = outdir + str(sconfig['random_seed']) + '_' + lconfig['LICFilename']
 
 controller.NameOutfile(outfile)
 controller.NameLicFile(licfile)
