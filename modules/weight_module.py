@@ -199,7 +199,7 @@ class GenerateWeight(icetray.I3Module):
                 self.simprop['MinEnergy'], self.simprop['MaxEnergy'],
                 self.simprop['MinZenith']*np.pi/180., self.simprop['MaxZenith']*np.pi/180.,
                 self.simprop['MinAzimuth']*np.pi/180., self.simprop['MaxAzimuth']*np.pi/180.,
-                self.simprop['gamma'], self.simprop['injRadius'], self.simprop['endLength']]
+                self.simprop['gamma'], self.simprop['InjectionRadius'], self.simprop['EndcapLength']]
         #Compute the weights for all events and store
         self.compute_all_weights()
 
@@ -228,7 +228,7 @@ class GenerateWeight(icetray.I3Module):
     #Calculate the injection area times solid angle
     def sim_volume(self):
         #get the parameters
-        self.injrad=self.simprop['injRadius']*1e2 #convert from meter to cm
+        self.injrad=self.simprop['InjectionRadius']*1e2 #convert from meter to cm
         self.zmax=self.simprop['MaxZenith']*np.pi/180.0 #convert from degree to rad
         self.zmin=self.simprop['MinZenith']*np.pi/180.0 #convert from degree to rad
         self.amin=self.simprop['MinAzimuth']*np.pi/180.0 #convert from degree to rad

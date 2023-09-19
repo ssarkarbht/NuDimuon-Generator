@@ -14,8 +14,8 @@
 	"MaxZenith" : 180.0,
 	"MinAzimuth" : 0.0,
 	"MaxAzimuth" : 360.0,
-	"injRadius" : 800.0,
-	"endLength" : 800.0,
+	"InjectionRadius" : 800.0,
+	"EndcapLength" : 800.0,
 	"out_folder" : "/testbed/test01/",
 	"out_filename" : "li.h5",
 	"lw_filename" : "lw.lic"

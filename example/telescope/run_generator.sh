@@ -87,16 +87,50 @@ medval="${medval%\"}"
 python3 $pyscript -i $fvalue -o $ovalue -s $seed -p $DIMUON_REPO/$pvalue -m $medval -t $ethr
 wait
 
+#[[STEP - 5]]
+
+#The following runs require icetray environment, so load the env first
+#cd /opt/icetray-public/build
+#./env-shell.sh
+#cd $dir_io/$dirname
+
+icenv=/opt/icetray-public/build/env-shell.sh
+
+# Merge the lepton injector geometry with output particle kinematics
+#Get the initial LI file output for retrieving geometry
+lvalue=$(jq '.Settings.out01_filename' "$gconfig")
+lvalue="${lvalue#\"}"
+lvalue="${lvalue%\"}"
+
+#Get the output i3 filename
+i3value=$(jq '.Settings.out05_filename' "$gconfig")
+i3value="${i3value#\"}"
+i3value="${i3value%\"}"
+
+$icenv python3 05_convert_h5toi3.py -i $lvalue -f $ovalue -o $i3value -s $seed
+wait
+
+#[[STEP - 6]]
+#Compute the event weights and store into output i3file
+
+#get the final output filename
+wvalue=$(jq '.Settings.out06_filename' "$gconfig")
+wvalue="${wvalue#\"}"
+wvalue="${wvalue%\"}"
+
+$icenv python3 06_compute_weights.py -i $i3value -l $lvalue -c $ovalue -f $gconfig -o $wvalue
+wait
+
 #Transfer the final output
 outdir=$(jq '.OutputDir' "$gconfig")
 outdir="${outdir#\"}"
 outdir="${outdir%\"}"
 
-mv $ovalue $outdir/$ovalue
+mv $wvalue $outdir/$wvalue
 
 #Clean the directory scripts copies
 shopt -s extglob
-rm !(*.txt|*.h5)
+rm !(*.txt|*.h5|*.i3.gz)
 
 
 echo "Done."

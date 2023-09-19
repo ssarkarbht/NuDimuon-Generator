@@ -19,14 +19,20 @@
         "out01_filename" : "01_std.h5",
 	"out02_filename" : "02_cnf.txt",
 	"out03_filename" : "03_charm.txt",
-	"out04_filename" : "04_dimuon.h5"
+	"out04_filename" : "04_dimuon.h5",
+	"out05_filename" : "05_i3file.i3.gz",
+	"out06_filename" : "06_i3weight.i3.gz"
 },
 "LeptonInjector" : {
+        "event_number" : 20000,
 	"finalType_1" : "MuMinus",
 	"finalType_2" : "Hadrons",
 	"CrossSectionDir" : "/cvmfs/icecube.opensciencegrid.org/data/neutrino-generator/cross_section_data/csms_differential_v1.0",
 	"EarthModelDir" : "/opt/LeptonInjector/src/resources/earthparams/",
 	"RangeMode" : true,
+        "MinEnergy" : 100.0,
+        "MaxEnergy" : 1000000.0,
+        "gamma"     : 2.0,
 	"MinZenith" : 80.0,
 	"MaxZenith" : 180.0,
 	"MinAzimuth" : 0.0,
