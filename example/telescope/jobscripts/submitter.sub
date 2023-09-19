@@ -1,4 +1,4 @@
-Executable = /data/icecube/ssarkar/dimuon_generator/rawdata/gen_standalone/scripts/run_generator.sh
+Executable = /data/icecube/ssarkar/dimuon_generator/rawdata/icecube_run/scripts/run_generator.sh
 
 log = main.log
 output = $(name).out

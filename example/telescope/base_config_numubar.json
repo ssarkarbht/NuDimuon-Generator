@@ -1,8 +1,8 @@
 {
-"Experiment" : "lhc",
-"ParentDir" : "/data/icecube/ssarkar/dimuon_generator/rawdata/lhc_run/workdir",
+"Experiment" : "telescope",
+"ParentDir" : "/data/icecube/ssarkar/dimuon_generator/rawdata/icecube_run/workdir",
 "WorkDir" : null,
-"OutputDir" : "/data/icecube/ssarkar/dimuon_generator/rawdata/lhc_run/dataio/charm_muon_files",
+"OutputDir" : "/data/icecube/ssarkar/dimuon_generator/rawdata/icecube_run/dataio/charm_muon_files",
 "OutfileFormat" : null,
 "Medium" : "ice",
 "InteractionProcess" : "CharmDimuon",
@@ -22,11 +22,19 @@
 	"out04_filename" : "04_dimuon.h5"
 },
 "LeptonInjector" : {
-	"EarthModelDir" : null,
-	"CrossSectionDir" : null,
-	"InjectionRadius" : 1200,
-	"EndcapLength" : 800,
-	"LICFilename" : null
+	"finalType_1" : "MuPlus",
+	"finalType_2" : "Hadrons",
+	"CrossSectionDir" : "/cvmfs/icecube.opensciencegrid.org/data/neutrino-generator/cross_section_data/csms_differential_v1.0",
+	"EarthModelDir" : "/opt/LeptonInjector/src/resources/earthparams/",
+	"RangeMode" : true,
+	"MinZenith" : 80.0,
+	"MaxZenith" : 180.0,
+	"MinAzimuth" : 0.0,
+	"MaxAzimuth" : 360.0,
+	"InjectionRadius" : 800.0,
+	"EndcapLength" : 800.0,
+	"LICFilename" : "lw.lic"
+
 },
 "CharmMuonSettings" : {
 	"ParamDir" : "data/charm_data/muon_tables/10GEV_Threshold",

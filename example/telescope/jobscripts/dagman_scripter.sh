@@ -2,10 +2,10 @@
 
 #config files
 curr_dir=$(echo `pwd`)
-cloc="/data/icecube/ssarkar/dimuon_generator/rawdata/lhc_run/config_batches"
+cloc="/data/icecube/ssarkar/dimuon_generator/rawdata/icecube_run/config_batches"
 #cd $cloc
 #cfiles="*.json"
-dagname="faserv_numu+numubar_2M.dag"
+dagname="ic_numu+numubar_2M.dag"
 num=0
 for i in $cloc/*.json
 do

@@ -6,14 +6,15 @@ import json
 
 #get the base config file
 #NuMu
-#infile = "base_config_numu.json"
+infile = "base_config_numu.json"
+
 #NuMuBar
-infile = "base_config_numubar.json"
+#infile = "base_config_numubar.json"
 
 #number of batches
 nbatch = 50
 #The location to put the newly generated config files
-outdir = "/data/icecube/ssarkar/dimuon_generator/rawdata/lhc_run/config_batches"
+outdir = "/data/icecube/ssarkar/dimuon_generator/rawdata/icecube_run/config_batches"
 
 #Load the base configuration
 with open(infile, "r") as f:
