@@ -41,10 +41,18 @@ elif lconfig['finalType_1']=='MuPlus':
 assert lconfig['finalType_2']=='Hadrons', "2nd outgoing particle is not hadrons!"
 final_2     = LI.Particle.ParticleType.Hadrons
 
+#get the proper cross section tables
+if sconfig['nu_pdg'][0] > 0:
+    dif_xs = '/dsdxdy_nu_CC_iso.fits'
+    tot_xs = '/sigma_nu_CC_iso.fits'
+elif sconfig['nu_pdg'][0] < 0:
+    dif_xs = '/dsdxdy_nubar_CC_iso.fits'
+    tot_xs = '/sigma_nubar_CC_iso.fits'
+
 the_injector = LI.Injector(sconfig['event_number'] ,
         final_1, final_2, 
-        lconfig['CrossSectionDir']+'/dsdxdy_nu_CC_iso.fits',
-        lconfig['CrossSectionDir']+'/sigma_nu_CC_iso.fits',
+        lconfig['CrossSectionDir']+dif_xs,
+        lconfig['CrossSectionDir']+tot_xs,
         lconfig['RangeMode'])
 
 #degree to radian conversion factor

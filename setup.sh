@@ -46,8 +46,17 @@ export DIMUON_REPO=$(echo `pwd`)
 
 #add module directory to python path
 export PYTHONPATH=$PYTHONPATH:$DIMUON_REPO/modules
-#------ set up lhapdf paths
+#------ set up lhapdf pdfsets and  paths
 export LHAPDF_DATA_PATH=$DIMUON_REPO/data/pdfsets
+
+#check if the pdfsets exists, if not, download the pdfsets
+if [ ! -e "$LHAPDF_DATA_PATH/pdfsets.index" ]; then
+	echo "Downloading PDFSets ..."
+	cd $LHAPDF_DATA_PATH
+	./setup_pdfs.sh
+	wait
+	cd $DIMUON_REPO
+fi
 
 # check if the pdfset folder exists, if they do don't download again
 # if the folders or the tar files don't exist, download and unzip them

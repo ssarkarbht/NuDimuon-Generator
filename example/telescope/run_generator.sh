@@ -35,7 +35,7 @@ fvalue=$(jq '.Settings.out01_filename' "$gconfig")
 fvalue="${fvalue#\"}"
 fvalue="${fvalue%\"}"
 
-python3 01_fix_primary.py
+python3 01_fix_primary.py -f $fvalue
 
 #[[STEP - 2]]
 #Charm configuration sampling
