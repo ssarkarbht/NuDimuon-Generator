@@ -33,3 +33,16 @@ singularity shell -B /data:/data -B <Other Paths>:<Other Paths> nudimuon-generat
 ```
 
 This will take you to the container environment where you can run all the generator scripts.
+
+3. Get the dimuon generator repo
+
+```
+git clone https://github.com/ssarkarbht/NuDimuon-Generator.git
+```
+
+4. Set up the generator paths and environments
+
+```
+cd NuDimuon-Generator
+source setup.sh
+```
