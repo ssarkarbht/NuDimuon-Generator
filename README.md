@@ -51,3 +51,5 @@ source setup.sh
 
 6. For the mass production of the events in a remote cluster, example batch submission scripts for **HTCondor** workload manager is provided in the respective example subdirectories.
 
+7. (For developers) If anyone wish to further develop/modify the existing simulation pipeline, they need to make their own container sandbox for any modification to the current software stack. For this, singularity image definition file is provided in `image_def/` for facilitating the container build process.
+
