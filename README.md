@@ -26,4 +26,10 @@ The following steps show how to run an example event generation chain for produc
 singularity pull --arch amd64 library://ssarkarbht/simgen/nudimuon-generator:v1.0
 ```
 
+2. Launch the singularity shell with your directories mounted
 
+```
+singularity shell -B /data:/data -B <Other Paths>:<Other Paths> nudimuon-generator_v1.0.sif
+```
+
+This will take you to the container environment where you can run all the generator scripts.
