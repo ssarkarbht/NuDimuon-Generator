@@ -22,4 +22,8 @@ The following steps show how to run an example event generation chain for produc
 
 1. Get the singularity container
 
-``
+```
+singularity pull --arch amd64 library://ssarkarbht/simgen/nudimuon-generator:v1.0
+```
+
+
