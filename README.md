@@ -46,3 +46,7 @@ git clone https://github.com/ssarkarbht/NuDimuon-Generator.git
 cd NuDimuon-Generator
 source setup.sh
 ```
+
+5. Scripts for running individual step of the simulation process are located at `scripts/`. To run an end-to-end event generation process for either collider neutrino (e.g. FASERnu, SND@LHC) or neutrino telescope (e.g. IceCube, P-ONE) experiements, single bash scripts are available in `/example`. The bash script takes an input simulation configuration file (also located in the respective directories) which has the option to define all the tunable parameters of the event generation process.
+
+
