@@ -49,5 +49,5 @@ source setup.sh
 
 5. Scripts for running individual step of the simulation process are located at `scripts/`. To run an end-to-end event generation process for either collider neutrino (e.g. FASERnu, SND@LHC) or neutrino telescope (e.g. IceCube, P-ONE) experiements, single bash scripts are available in `example/`. The bash script takes an input simulation configuration file (also located in the respective directories) which has the option to define all the tunable parameters of the event generation process.
 
-6. For the mass production of the events in a remote cluster, example batch submission scripts for * HTCondor * workload manager is provided in the respective example subdirectories.
+6. For the mass production of the events in a remote cluster, example batch submission scripts for **HTCondor** workload manager is provided in the respective example subdirectories.
 
