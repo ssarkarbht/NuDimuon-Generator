@@ -53,3 +53,4 @@ source setup.sh
 
 7. (For developers) If anyone wish to further develop/modify the existing simulation pipeline, they need to make their own container sandbox for any modification to the current software stack. For this, singularity image definition file is provided in `image_def/` for facilitating the container build process.
 
+8. Plots
